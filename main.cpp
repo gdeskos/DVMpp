@@ -37,116 +37,71 @@ try{
 
     std::cout << "Successfully loaded XML input file" << std::endl;
 
-//    std::string in_dir = xml_doc.child("IC2DDVM").child("io").child("input_dir").attribute("string").value();
-//    std::string out_dir = xml_doc.child("IC2DDVM").child("io").child("output_dir").attribute("stringX").value();
-
     
-    double rho = atof(xml_doc.child("IC2DDVM").child("constants").child("density").attribute("val").value());
-    if(rho <=0){ throw std::string("<IC2DDVM><constants><density> must be larger than zero");}
-   
-    double nu = atof(xml_doc.child("IC2DDVM").child("constants").child("nu").attribute("val").value());
-    if(nu <=0){ throw std::string("<IC2DDVM><constants><nu> must be larger than zero");}
+    DVMBase dvm;
     
-    double max_gamma = atof(xml_doc.child("IC2DDVM").child("constants").child("max_gamma").attribute("val").value());
-    if(max_gamma <=0){ throw std::string("<IC2DDVM><constants><max_gamma> must be larger than zero");}
+    dvm.init(xml_doc);
+    dvm.read_input_coord();
+    dvm.init_outputs();
     
     
-    double dt = atof(xml_doc.child("IC2DDVM").child("time").child("dt").attribute("val").value());
-    if(dt <=0){ throw std::string("<IC2DDVM><time><dt> must be larger than zero");}
-    
-    unsigned steps = atof(xml_doc.child("IC2DDVM").child("time").child("steps").attribute("val").value());
-    if(steps <=0){ throw std::string("<IC2DDVM><time><steps> must be larger than zero");}
-  
-    unsigned ux = atof(xml_doc.child("IC2DDVM").child("flow").child("ux").attribute("val").value());
-    unsigned uz = atof(xml_doc.child("IC2DDVM").child("flow").child("uz").attribute("val").value());
-    
-    // Generalise this to arrays
-    unsigned probe_x = atof(xml_doc.child("IC2DDVM").child("probe").child("x").attribute("val").value());
-    unsigned probe_z = atof(xml_doc.child("IC2DDVM").child("probe").child("z").attribute("val").value());
+    dvm.form_vortex_sheet();
+    dvm.compute_influence_matrix();
     
     
-    DVMBase bl;
-    
-    //Parameters
-    bl.m_maxGamma=max_gamma;
-    bl.m_dt=dt;
-    bl.m_rho=rho;
-    bl.m_steps=steps;
-    
-    bl.m_nu=nu;
-    bl.m_Ux=ux;
-    bl.m_Uz=uz;
-   // bl.m_body; ?? What is this command doing here?
-
-    bl.m_probe.resize(1);
- 
-    // Define probe point
-    bl.m_probe.x[0]=probe_x;
-    bl.m_probe.z[0]=probe_z;
-
-    /*
-    
-    bl.read_input_coord();
-
-    bl.form_vortex_sheet(); 
-    bl.m_Gamma_abs.resize(bl.m_vortsheet.size());
-    bl.compute_influence_matrix();
- 
-    bl.init_outputs(); 
     
     clock_t start;
     double cpu_time;
 
-    */
-    /*
-    
     start = clock();
-    // Start the time loop;
-    for(unsigned j=1;j<=bl.m_steps;j++)
-    {
-        bl.m_step=j; 
-        bl.m_time=bl.m_dt*j; 
 
-        if(bl.m_vortex.size()==0){
-            
-            bl.solvevortexsheet();
-            bl.save_vort();
+    // Start the time loop;
+    for(unsigned j=1;j<=dvm.get_steps();j++)
+    {
+        dvm.increment_step();
         
+        if(dvm.get_size()==0){
+            dvm.solvevortexsheet();
+            dvm.save_vort();
         }else{
         
-        // Inviscid Substep
-        bl.solvevortexsheet();
-        //bl.compute_loads();
-        bl.save_vort();
+            // Inviscid Substep
+            dvm.solvevortexsheet();
+            dvm.save_vort();
   
-        bl.convect(1,bl.m_dt);
-        bl.diffrw(bl.m_nu,bl.m_dt); 
-
+            //bl.compute_loads();
+            
+            dvm.convect(1); // first order second order scheme
+            dvm.diffrw();
         }
         
-
+        
         // Viscous Substep
-        bl.diffuse_vs_rw();
+        dvm.diffuse_vs_rw(); // a number of question here - not entirely clear
        
+    
         // Housekeeping
-        bl.reflect();
+        dvm.reflect();
    
+        
         // Compute certain values
-        bl.probe_velocities();
+        //bl.probe_velocities();
 
         // Output
-        bl.write_outputs(); 
+        dvm.write_outputs();
         
+        
+         
         // Screen output
-        cout<<"Simulation message : time = "<<bl.m_time<<std::endl;
-        cout<<"Number of vortex blobs : NVB = "<<bl.m_vortex.size()<<std::endl;
+        cout<<"Simulation time          = " << dvm.get_time() << std::endl;
+        cout<<"Number of vortex blobs   = " << dvm.get_size() << std::endl;
     }
        
     // output the cpu time on screen 
     cpu_time = (clock() - start) / (double) CLOCKS_PER_SEC;
-    cout<<"The CPU time is : "<< cpu_time<<endl;
+    cout << "Used CPU time is : "<< cpu_time << endl;
     
-    */
+    
 }catch (char* str){
     std::cout << "Exception thrown: " << str << std::endl;
 }catch (std::string str){

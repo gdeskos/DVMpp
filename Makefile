@@ -22,7 +22,8 @@ else
 		CLIBS=""
 		CXXFLAGS=-g3 -O3 -fopenmp 
 		CFLAGS=""
-		LDFLAGS=-O3 -I/opt/local/lib -fopenmp -llapack -lblas
+        #Note: the framework accelerate is required under MAC and replaces lpack
+		LDFLAGS=-O3 -I/opt/local/lib -fopenmp -larmadillo -framework Accelerate
 		CXXVER=$(shell g++ --version | head -1 | sed 's/(.*)//;s/  */_v/')
 	else
 		#SRC += MatlabEngine.cpp MatlabKinematics.cpp

@@ -2,6 +2,8 @@
 #define DVMBASE
 
 #include "BaseTypes.hpp"
+#include "pugiconfig.hpp"
+#include "pugixml.hpp"
 #include <iostream>
 #include <sstream>
 #include <string.h>
@@ -16,6 +18,10 @@ class DVMBase
 {
 public:
      DVMBase();
+    
+     // initialise the object
+     void init(pugi::xml_document&);
+    
      // read paramters 
      void init_dipole(double zdistance, double xdistance, unsigned nvb1, unsigned nvb2,double radius1, double radius2);
      void init_outputs();
@@ -27,7 +33,7 @@ public:
      
      // Convect stuff
      void biotsavart();
-     void convect(unsigned order, double dt);
+     void convect(unsigned order);
      
      // Vortex sheet stuff
      void solvevortexsheet();
@@ -35,7 +41,7 @@ public:
      void imagebc();
 
      // Diffusion stuff
-     void diffrw(double nu,double dt);
+     void diffrw();
      void diffpse(double nu, double dt);
      void diffuse_vs_rw();
      void write_outputs();
@@ -52,6 +58,11 @@ public:
     void compute_loads();
     void compute_strouhal();
     void probe_velocities();
+    double get_time();
+    unsigned get_size();
+    unsigned get_steps();
+    
+    void increment_step();
 
 public:
      VortexBlobs m_vortex;
@@ -62,14 +73,20 @@ public:
 public:
      Matrix m_infM;
      std::ofstream  dev_dvm, dev_Num, dev_gamma, dev_loads, dev_probe;
-     std::vector<double> xi_rw, eta_rw;
+     //std::vector<double> xi_rw, eta_rw; // Why were these here???
      std::vector<double> uvs, wvs, uI, wI;
      std::vector<double> m_gamma_prev;
      std::vector<double> m_Gamma_abs;     
      double m_dt, m_nu, m_Ux, m_Uz, m_n, m_np;
-     double m_time, m_step, m_steps;   
+     double m_time;
+     unsigned m_step, m_steps;
      double m_GammaDel, m_maxGamma;
      double m_St;
+    
+    // Reading and writing
+    std::string m_in_dir;
+    std::string m_out_dir;
+    std::string m_domain_file;
 
      // some constants
      double m_pi;
