@@ -3,6 +3,12 @@
 //#include <armadillo>
 #include <time.h>
 
+
+DVMBase::DVMBase()
+{
+    m_pi=4.0*atan(1.0);
+}
+
 void DVMBase::init_outputs()
 {
     dev_dvm.open("../outputs/vortex.dat");

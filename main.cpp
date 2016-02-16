@@ -37,38 +37,69 @@ try{
 
     std::cout << "Successfully loaded XML input file" << std::endl;
 
+//    std::string in_dir = xml_doc.child("IC2DDVM").child("io").child("input_dir").attribute("string").value();
+//    std::string out_dir = xml_doc.child("IC2DDVM").child("io").child("output_dir").attribute("stringX").value();
+
+    
+    double rho = atof(xml_doc.child("IC2DDVM").child("constants").child("density").attribute("val").value());
+    if(rho <=0){ throw std::string("<IC2DDVM><constants><density> must be larger than zero");}
+   
+    double nu = atof(xml_doc.child("IC2DDVM").child("constants").child("nu").attribute("val").value());
+    if(nu <=0){ throw std::string("<IC2DDVM><constants><nu> must be larger than zero");}
+    
+    double max_gamma = atof(xml_doc.child("IC2DDVM").child("constants").child("max_gamma").attribute("val").value());
+    if(max_gamma <=0){ throw std::string("<IC2DDVM><constants><max_gamma> must be larger than zero");}
+    
+    
+    double dt = atof(xml_doc.child("IC2DDVM").child("time").child("dt").attribute("val").value());
+    if(dt <=0){ throw std::string("<IC2DDVM><time><dt> must be larger than zero");}
+    
+    unsigned steps = atof(xml_doc.child("IC2DDVM").child("time").child("steps").attribute("val").value());
+    if(steps <=0){ throw std::string("<IC2DDVM><time><steps> must be larger than zero");}
+  
+    unsigned ux = atof(xml_doc.child("IC2DDVM").child("flow").child("ux").attribute("val").value());
+    unsigned uz = atof(xml_doc.child("IC2DDVM").child("flow").child("uz").attribute("val").value());
+    
+    // Generalise this to arrays
+    unsigned probe_x = atof(xml_doc.child("IC2DDVM").child("probe").child("x").attribute("val").value());
+    unsigned probe_z = atof(xml_doc.child("IC2DDVM").child("probe").child("z").attribute("val").value());
+    
     
     DVMBase bl;
     
     //Parameters
-    bl.m_maxGamma=0.05;
-    bl.m_dt=0.5;
-    bl.m_rho=1.0;
-    double T=100;
-    bl.m_steps=T/bl.m_dt;
-    bl.m_nu=0.000001;
-    bl.m_Ux=0.01;
-    bl.m_Uz=0;
-    bl.m_body;
+    bl.m_maxGamma=max_gamma;
+    bl.m_dt=dt;
+    bl.m_rho=rho;
+    bl.m_steps=steps;
+    
+    bl.m_nu=nu;
+    bl.m_Ux=ux;
+    bl.m_Uz=uz;
+   // bl.m_body; ?? What is this command doing here?
 
     bl.m_probe.resize(1);
+ 
     // Define probe point
-    bl.m_probe.x[0]=20;
-    bl.m_probe.z[0]=1;
+    bl.m_probe.x[0]=probe_x;
+    bl.m_probe.z[0]=probe_z;
 
+    /*
+    
     bl.read_input_coord();
 
     bl.form_vortex_sheet(); 
     bl.m_Gamma_abs.resize(bl.m_vortsheet.size());
     bl.compute_influence_matrix();
  
-    //cin.get();
-
     bl.init_outputs(); 
     
     clock_t start;
     double cpu_time;
 
+    */
+    /*
+    
     start = clock();
     // Start the time loop;
     for(unsigned j=1;j<=bl.m_steps;j++)
@@ -115,7 +146,7 @@ try{
     cpu_time = (clock() - start) / (double) CLOCKS_PER_SEC;
     cout<<"The CPU time is : "<< cpu_time<<endl;
     
-    
+    */
 }catch (char* str){
     std::cout << "Exception thrown: " << str << std::endl;
 }catch (std::string str){
@@ -123,6 +154,8 @@ try{
 }catch ( ...) {
     std::cout << "Unhandled exception type" << std::endl;
 }
+    
+    std::cout << "Completed DVM computations succesfully" << std::endl;
     
 return 0;
     

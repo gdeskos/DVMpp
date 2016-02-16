@@ -1,5 +1,5 @@
 PROG=DVMcpp
-SRC= pugixml.cpp BaseTypes.cpp DVMRoutines.cpp DVM.cpp main.cpp
+SRC= pugixml.cpp BaseTypes.cpp DVMBase.cpp main.cpp
 
 #Set compiler and version based on whether a HPC, normal PC with or without MATLAB
 HOST=$(shell domainname | sed 's/\.//g')
@@ -98,10 +98,10 @@ $(PROG):$(OBJ)
 BaseTypes.o: BaseTypes.cpp BaseTypes.hpp 
 	$(CXX) $(CXXFLAGS) -c $<
 
-DVMRoutines.o: DVMRoutines.cpp DVMBase.hpp BaseTypes.hpp 
+DVMBase.o: DVMBase.cpp DVMBase.hpp BaseTypes.hpp
 	$(CXX) $(CXXFLAGS) -c $<
 
-main.o: main.cpp DVM.cpp DVMBase.hpp DVMRoutines.cpp BaseTypes.hpp
+main.o: main.cpp DVMBase.hpp DVMBase.cpp BaseTypes.hpp
 	$(CXX) $(CXXFLAGS) -c $<
 
 .PHONY: cleanobj, clean
