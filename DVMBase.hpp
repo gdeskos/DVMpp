@@ -60,6 +60,7 @@ public:
     void probe_velocities();
     double get_time();
     unsigned get_size();
+    unsigned get_vs_size();
     unsigned get_steps();
     
     void increment_step();
@@ -78,6 +79,7 @@ public:
      std::vector<double> m_gamma_prev;
      std::vector<double> m_Gamma_abs;     
      double m_dt, m_nu, m_Ux, m_Uz, m_n, m_np;
+     double m_kernel_threshold;
      double m_time;
      unsigned m_step, m_steps;
      double m_GammaDel, m_maxGamma;
@@ -89,7 +91,7 @@ public:
     std::string m_domain_file;
 
      // some constants
-     double m_pi;
+     double m_pi,m_rpi2;
 
      // Loads related variables
      double m_CD, m_rho;

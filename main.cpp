@@ -56,11 +56,11 @@ try{
     start = clock();
 
     // Start the time loop;
-    for(unsigned j=1;j<=dvm.get_steps();j++)
-    {
+    for(unsigned j=1;j<=dvm.get_steps();j++){
+        
         dvm.increment_step();
         
-        if(dvm.get_size()==0){
+        if(dvm.get_vs_size()==0){ // Is this the correct get_size command?
             dvm.solvevortexsheet();
             dvm.save_vort();
         }else{
@@ -93,7 +93,7 @@ try{
         
          
         // Screen output
-        cout<<"Simulation time          = " << dvm.get_time() << std::endl;
+        cout<<"Simulation time          = " << dvm.get_time() << "\tStep " << j << "/" << dvm.get_steps() << std::endl;
         cout<<"Number of vortex blobs   = " << dvm.get_size() << std::endl;
     }
        

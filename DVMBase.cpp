@@ -8,6 +8,8 @@ DVMBase::DVMBase()
 {
     m_pi=4.0*atan(1.0);
     m_step = 0;
+    m_rpi2 = 1.0 / (2.0 * m_pi);
+    
 }
 
 
@@ -26,6 +28,8 @@ void DVMBase::init(pugi::xml_document& xml_doc)
     double max_gamma = atof(xml_doc.child("IC2DDVM").child("constants").child("max_gamma").attribute("val").value());
     if(max_gamma <=0){ throw std::string("<IC2DDVM><constants><max_gamma> must be larger than zero");}
     
+    double kernel = atof(xml_doc.child("IC2DDVM").child("constants").child("kernel_threshold").attribute("val").value());
+    if(kernel <=0){ throw std::string("<IC2DDVM><constants><kernel_threshold> must be larger than zero");}
     
     double dt = atof(xml_doc.child("IC2DDVM").child("time").child("dt").attribute("val").value());
     if(dt <=0){ throw std::string("<IC2DDVM><time><dt> must be larger than zero");}
@@ -33,8 +37,8 @@ void DVMBase::init(pugi::xml_document& xml_doc)
     unsigned steps = atof(xml_doc.child("IC2DDVM").child("time").child("steps").attribute("val").value());
     if(steps <=0){ throw std::string("<IC2DDVM><time><steps> must be larger than zero");}
     
-    unsigned ux = atof(xml_doc.child("IC2DDVM").child("flow").child("ux").attribute("val").value());
-    unsigned uz = atof(xml_doc.child("IC2DDVM").child("flow").child("uz").attribute("val").value());
+    double ux = atof(xml_doc.child("IC2DDVM").child("flow").child("ux").attribute("val").value());
+    double uz = atof(xml_doc.child("IC2DDVM").child("flow").child("uz").attribute("val").value());
     
     // Generalise this to arrays
     unsigned probe_x = atof(xml_doc.child("IC2DDVM").child("probe").child("x").attribute("val").value());
@@ -48,6 +52,8 @@ void DVMBase::init(pugi::xml_document& xml_doc)
     
     //Parameters
     m_maxGamma=max_gamma;
+    m_kernel_threshold = kernel;
+    
     m_dt=dt;
     m_rho=rho;
     m_steps=steps;
@@ -99,25 +105,46 @@ void DVMBase::read_input_coord()
 void DVMBase::init_outputs()
 {
     
-    dev_dvm.open( (m_out_dir + std::string("vortex.dat")).c_str()  );
+    // Init all io files
+    time_t rawtime;
+    struct tm * ptm;
+    time ( &rawtime );
+    ptm = gmtime ( &rawtime );
+    
+    std::ostringstream os;
+    os << ptm->tm_year +1900 << "_";
+    if(ptm->tm_mon +1 < 10){ os << "0";}
+    os << ptm->tm_mon +1 << "_";
+    if(ptm->tm_mday < 10){ os << "0";}
+    os << ptm->tm_mday << "_";
+    if(ptm->tm_hour +1 < 10){ os << "0";}
+    os << ptm->tm_hour +1 << "_";
+    if(ptm->tm_min < 10){ os << "0";}
+    os << ptm->tm_min << "_";
+    if(ptm->tm_sec < 10){ os << "0";}
+    os << ptm->tm_sec;
+    
+    std::cout << "File timestamp is " << os.str() << std::endl;
+    
+    dev_dvm.open( (m_out_dir + os.str() + std::string("_vortex.dat")).c_str()  );
     dev_dvm << m_vortex.size() << " # Number of Nodes" << std::endl;
     dev_dvm << m_dt<< " # Time Step" << std::endl;
     dev_dvm << m_steps <<" # Steps "<<std::endl;
     dev_dvm<<"Time[s]"<< " "<<" x-position [m]"<<" "<<"z-position [m]"<<" "<<"circulation"<<std::endl;
     
-    dev_Num.open( (m_out_dir + std::string("vortexNum.dat")).c_str() );
+    dev_Num.open( (m_out_dir + os.str() + std::string("_vortex_num.dat")).c_str() );
     dev_Num << "Time [s]" << " " << "Number of vortices" << std::endl;
     
-    dev_gamma.open( (m_out_dir + std::string("gamma.dat")).c_str() );
+    dev_gamma.open( (m_out_dir + os.str() + std::string("_gamma.dat")).c_str() );
     dev_gamma << m_vortsheet.size() <<" # Number of collocation points" << std::endl;
     dev_gamma << m_dt << " # Time Step" << std::endl;
     dev_gamma << m_steps <<" # Steps " << std::endl;
     dev_gamma << "Time [s]" <<" "<<"Gamma - Vortex sheet strength" << std::endl;
     
-    dev_loads.open( (m_out_dir + std::string("loads.dat")).c_str() );
+    dev_loads.open( (m_out_dir + os.str() + std::string("_loads.dat")).c_str() );
     dev_loads << "Time [s]" << " " << " CD " << std::endl;
     
-    dev_probe.open( (m_out_dir + std::string("probe.dat")).c_str() );
+    dev_probe.open( (m_out_dir + os.str() + std::string("_probe.dat")).c_str() );
     dev_probe<<m_dt<< " # Time Step" <<std::endl;
     dev_probe<<m_steps<<" # Steps "<<std::endl;
     dev_probe<<"Time [s]"<<"\t"<<"u [m/s]"<<"\t"<<"w{m/s"<<std::endl;
@@ -241,26 +268,28 @@ void DVMBase::compute_influence_matrix()
 double DVMBase::get_time()
 {
     return m_time;
-
 }
 
 unsigned DVMBase::get_size()
 {
-    return m_vortsheet.size();
-    
+    return m_vortex.size();
 }
+
+unsigned DVMBase::get_vs_size()
+{
+    return m_vortsheet.size();
+}
+
 
 unsigned DVMBase::get_steps()
 {
     return m_steps;
-    
 }
 
 void DVMBase::increment_step()
 {
     m_step++;
     m_time = m_step*m_dt;
-    
 }
 
 void DVMBase::write_outputs()
@@ -283,58 +312,7 @@ void DVMBase::write_outputs()
 }
 
 
-
-void DVMBase::init_dipole(double zdistance, double xdistance, unsigned nvb1, unsigned nvb2,double radius1,double radius2)
-{
-    unsigned nvb=nvb1+nvb2;
-    m_vortex.resize(nvb);
-    double pi=acos(-1.0);
-    unsigned nr1=20;
-    unsigned ntheta1=nvb1/nr1;
-    double dr1=radius1/nr1;
-    double dtheta1=2.0*pi/ntheta1;
-    unsigned count1=0;
-
-    for(unsigned i=0;i<nr1;i++)
-    {
-        for(unsigned j=0;j<ntheta1;j++)
-        {
-        m_vortex.ID[count1]=count1;
-        m_vortex.x[count1]=xdistance + dr1*(i+1)*cos(dtheta1*(j+1));
-        m_vortex.z[count1]=zdistance + dr1*(i+1)*sin(dtheta1*(j+1));
-        m_vortex.circ[count1]=0.1;
-        m_vortex.sigma[count1]=0.0005;
-        m_vortex.u[count1]=0;
-        m_vortex.w[count1]=0;
-        m_vortex.omega[count1]=0;
-        count1=count1+1;
-        }
-    }
-   
-    unsigned count2=count1;
-
-    unsigned nr2=20;
-    unsigned ntheta2=nvb2/nr2;
-    double dr2=radius2/nr2;
-    double dtheta2=2.0*pi/ntheta2;
-
-    for(unsigned i=0;i<nr2;i++)
-    {
-        for(unsigned j=0;j<ntheta2;j++)
-        {
-        m_vortex.ID[count2]=count2;
-        m_vortex.x[count2]=-xdistance + dr2*(i+1)*cos(dtheta2*(j+1));
-        m_vortex.z[count2]=zdistance + dr2*(i+1)*sin(dtheta2*(j+1));
-        m_vortex.circ[count2]=-0.1;
-        m_vortex.sigma[count2]=0.0005;
-        m_vortex.u[count2]=0;
-        m_vortex.w[count2]=0;
-        m_vortex.omega[count2]=0;
-        count2=count2+1;
-        }
-    }
-}
-
+/*
 void DVMBase::biotsavart()
 {
     double rsigmasqr;
@@ -386,8 +364,55 @@ void DVMBase::biotsavart()
     for(unsigned i=0;i<m_vortex.size();i++){
         m_vortex.u[i] *= rpi2;
         m_vortex.w[i] *= rpi2;
+    
+        //std::cout << "Vortex [" << i << "] u = " << m_vortex.u[i] << " w = " << m_vortex.w[i] << std::endl;
+        
     }
 }
+*/
+
+
+void DVMBase::biotsavart()
+{
+    
+    #pragma omp parallel for
+    for(unsigned i=0; i<m_vortex.size(); i++){
+      
+        double dx_ij,dz_ij,dK_ij,dr_ij2,threshold,rsigmasqr;
+        
+        m_vortex.u[i]=0.0;
+        m_vortex.w[i]=0.0;
+        
+        for(unsigned j=0; j<m_vortex.size(); j++){
+            
+            if(i!=j){
+                dx_ij = m_vortex.x[i] - m_vortex.x[j];
+                dz_ij = m_vortex.z[i] - m_vortex.z[j];
+                dr_ij2 = std::pow(dx_ij,2) + std::pow(dz_ij,2.0);
+            
+                threshold = m_kernel_threshold * std::pow(m_vortex.sigma[j],2.0); // take the threshold number into the script
+                rsigmasqr = 1.0/std::pow(m_vortex.sigma[j],2.0);
+            
+                if(dr_ij2<threshold){
+                    dK_ij=(1.0 - std::exp(-dr_ij2*rsigmasqr))/dr_ij2;
+                }else{
+                    dK_ij= 1.0/dr_ij2;
+                }
+            
+                m_vortex.u[i] -= dK_ij*dz_ij*m_vortex.circ[j];
+                m_vortex.w[i] += dK_ij*dx_ij*m_vortex.circ[j];
+            }
+        }
+        m_vortex.u[i] *= m_rpi2;
+        m_vortex.w[i] *= m_rpi2;
+        
+    }
+}
+
+ 
+ 
+
+
 
 void DVMBase::convect(unsigned order)
 {
@@ -398,6 +423,13 @@ void DVMBase::convect(unsigned order)
         for(unsigned i=0;i<m_vortex.size();i++){
             m_vortex.x[i] +=  (m_vortex.u[i] + m_vortex.uvs[i] + m_Ux)*m_dt;
             m_vortex.z[i] +=  (m_vortex.w[i] + m_vortex.wvs[i] + m_Uz)*m_dt;
+            
+           // m_vortex.x[i] +=  (m_vortex.u[i]  + m_Ux)*m_dt;
+           // m_vortex.z[i] +=  (m_vortex.w[i]  + m_Uz)*m_dt;
+            
+           // std::cout << "Vortex [" << i << "] x = " << m_vortex.x[i] << " z = " << m_vortex.z[i] << std::endl;
+        
+           // std::cout << "Ux = " << m_Ux << " Uz = " << m_Uz << std::endl;
         }
     }else if (order==2){
         
@@ -807,12 +839,69 @@ std::vector<double> DVMBase::mirror(double x_init, double z_init, double x_0, do
    return p2;
 }
 
+
+
+
+/*
+ void DVMBase::init_dipole(double zdistance, double xdistance, unsigned nvb1, unsigned nvb2,double radius1,double radius2)
+ {
+ unsigned nvb=nvb1+nvb2;
+ m_vortex.resize(nvb);
+ double pi=acos(-1.0);
+ unsigned nr1=20;
+ unsigned ntheta1=nvb1/nr1;
+ double dr1=radius1/nr1;
+ double dtheta1=2.0*pi/ntheta1;
+ unsigned count1=0;
+ 
+ for(unsigned i=0;i<nr1;i++)
+ {
+ for(unsigned j=0;j<ntheta1;j++)
+ {
+ m_vortex.ID[count1]=count1;
+ m_vortex.x[count1]=xdistance + dr1*(i+1)*cos(dtheta1*(j+1));
+ m_vortex.z[count1]=zdistance + dr1*(i+1)*sin(dtheta1*(j+1));
+ m_vortex.circ[count1]=0.1;
+ m_vortex.sigma[count1]=0.0005;
+ m_vortex.u[count1]=0;
+ m_vortex.w[count1]=0;
+ m_vortex.omega[count1]=0;
+ count1=count1+1;
+ }
+ }
+ 
+ unsigned count2=count1;
+ 
+ unsigned nr2=20;
+ unsigned ntheta2=nvb2/nr2;
+ double dr2=radius2/nr2;
+ double dtheta2=2.0*pi/ntheta2;
+ 
+ for(unsigned i=0;i<nr2;i++)
+ {
+ for(unsigned j=0;j<ntheta2;j++)
+ {
+ m_vortex.ID[count2]=count2;
+ m_vortex.x[count2]=-xdistance + dr2*(i+1)*cos(dtheta2*(j+1));
+ m_vortex.z[count2]=zdistance + dr2*(i+1)*sin(dtheta2*(j+1));
+ m_vortex.circ[count2]=-0.1;
+ m_vortex.sigma[count2]=0.0005;
+ m_vortex.u[count2]=0;
+ m_vortex.w[count2]=0;
+ m_vortex.omega[count2]=0;
+ count2=count2+1;
+ }
+ }
+ }
+ */
+
+
 /*
 
 ////Delete vortices that enter the body
 void DVMBase::delete_vort()
 {
-    std::cout<<"Checking whether a vortex blob has crossed the body or not ..."<<std::endl; 
+    std::cout<<"Checking whether a vortex blob has crossed the body or not ..."<<std::endl;
     std::vector<int> inside_index;
     inside_index.resize(m_vortex.size());
     int size=m_vortex.size(); 
