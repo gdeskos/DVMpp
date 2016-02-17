@@ -61,7 +61,6 @@ void DVMBase::init(pugi::xml_document& xml_doc)
     m_nu=nu;
     m_Ux=ux;
     m_Uz=uz;
-    // bl.m_body; ?? What is this command doing here?
     
     // Generalise this to arrays
     m_probe.resize(1);
@@ -80,10 +79,8 @@ void DVMBase::read_input_coord()
     int index = 0;
     double tmp1,tmp2;
     
-    if (coor_file.is_open())
-    {
-        while (coor_file.good())
-        {
+    if (coor_file.is_open()){
+        while (coor_file.good()){
             std::getline (coor_file,line);
             std::istringstream buffer(line);
             buffer >>tmp1 >>tmp2;
@@ -99,7 +96,9 @@ void DVMBase::read_input_coord()
         std::string error_msg;
         error_msg = "Unable to open coordinate file from " + file ;
         throw error_msg;
-    }  
+    }
+    
+    m_body.print_location();    
 }
 
 void DVMBase::init_outputs()
@@ -182,6 +181,9 @@ void DVMBase::form_vortex_sheet()
     
     m_Gamma_abs.resize(m_vortsheet.size());
     
+    m_vortsheet.print_collocation();
+    m_vortsheet.print_unit_vectors();
+    
     std::cout << "Created vortex sheet of size " << m_vortsheet.size() << std::endl;
 }
 
@@ -193,7 +195,7 @@ void DVMBase::compute_influence_matrix()
     // Compute influence matrix according to coefficients from Kuette and Chow
     // =======================================================================
     
-    m_infM.resize(m_n+1,std::vector<double>(m_n));
+    m_infM.resize(m_n,std::vector<double>(m_n));
     double c1,c2,c3,c4,c5,c6,c7,c8,c9;
     Matrix CN1,CN2;
     CN1.resize(m_vortsheet.size(),std::vector<double>(m_vortsheet.size()));
@@ -243,24 +245,30 @@ void DVMBase::compute_influence_matrix()
         m_infM[m_vortsheet.size()][j]=0.0;
     }
     
+    
+    // JS - remove this condition for now
+    /*
     // Enforcing the total circulation
     for(unsigned j=0;j<m_vortsheet.size();j++)
     {
-        m_infM[m_vortsheet.size()][j]=m_vortsheet.ds[j];
+        m_infM[m_vortsheet.size()+1][j]=m_vortsheet.ds[j]; // Was this a bug here? Index + 1
     }
+    */
     
-    /*
     // Print the matrix
+    /*
     //===============================================
-    for (unsigned i=0;i<m_vortsheet.size()+1;i++){
-        for(unsigned j=0;j<m_vortsheet.size();j++){
+    for (unsigned i=0;i<m_infM.size();i++){
+        for(unsigned j=0;j<m_infM[0].size();j++){
             std::cout<<m_infM[i][j]<<'\t';
         }
         std::cout<<"\n";
     }
     //==============================================
-     */
-
+    
+    throw std::string("Stop here");
+    */
+    
     std::cout << "Computed influence matrix of size " << m_infM.size() << "," << m_infM[0].size() << " after Kuette and Chow" << std::endl;
 }
 
@@ -310,7 +318,6 @@ void DVMBase::write_outputs()
         dev_probe << m_time << " " << m_probe.u[i] << " " << m_probe.w[i] << std::endl;
     }
 }
-
 
 /*
 void DVMBase::biotsavart()
@@ -369,8 +376,7 @@ void DVMBase::biotsavart()
         
     }
 }
-*/
-
+ */
 
 void DVMBase::biotsavart()
 {
@@ -537,16 +543,23 @@ void DVMBase::solvevortexsheet()
            brhs[i]=((m_Ux+u[i])*m_vortsheet.enx[i]+(m_Uz+w[i])*m_vortsheet.enz[i]);
        }    
        brhs[m_vortsheet.size()]=brhs[0]; 
-       brhs[m_vortsheet.size()+1]=-m_vortex.totalcirc(); 
+      
+       //JS remove the total circulation condition for now
+       //brhs[m_vortsheet.size()+1]=-m_vortex.totalcirc();
    }
 
     // Use Armadillo to solve the overdetermined system
     arma::mat M,B,X;
-    M.zeros(m_n+1,m_n);
-    B.zeros(m_n+1,1); 
-
+   
+    //JS remove last entry
+    //M.zeros(m_n+1,m_n);
+    //B.zeros(m_n+1,1);
+    M.zeros(m_n,m_n);
+    B.zeros(m_n,1);
+    
     // Copy Files into Armadillo format
-    for(unsigned i=0; i<m_n+1; i++){
+    //for(unsigned i=0; i<m_n+1; i++){ //JS edit
+    for(unsigned i=0; i<m_n; i++){
         B(i,0) = brhs[i];
         for(unsigned j=0; j<m_n; j++){
             M(i,j) = m_infM[i][j];
@@ -562,7 +575,6 @@ void DVMBase::solvevortexsheet()
     }
     m_vortsheet.gamma[0]=0.5*(X(0,0)+X(m_vortsheet.size(),0));
     m_vortsheet.gamma[m_vortsheet.size()-1]=0.5*(X(0,0)+X(m_vortsheet.size(),0));
-    
 }
 
 void DVMBase::vortexsheetbc()
