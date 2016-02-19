@@ -579,11 +579,6 @@ void DVMBase::solvevortexsheet()
 
 void DVMBase::vortexsheetbc()
 {
-    double rsigmasqr;
-    const double rpi2=1.0/(2.0*m_pi);
-    double dx_ij,dz_ij,dr_ij2,dr_ij,threshold,xkernel;
-    double dK_ij, zkernel,circulation,sigma;
-    double x_i,z_i,u_i,w_i,c_i;
     double c1,c2,c3,c4,c5,c6,c7,c8,c9;
     Matrix px,py,qx,qy;
     
@@ -592,19 +587,11 @@ void DVMBase::vortexsheetbc()
     py.resize(m_vortex.size(),std::vector<double>(m_vortsheet.size()));
     qy.resize(m_vortex.size(),std::vector<double>(m_vortsheet.size())); 
 
-
-    for(unsigned i=0; i<m_vortex.size(); i++){
-        m_vortex.uvs[i]=0.0;
-        m_vortex.wvs[i]=0.0;
-    }
-
+    
+    // compute the coefficients
+    #pragma omp parallel for
     for(unsigned i=0; i<m_vortex.size(); i++){
         for(unsigned j=0; j<m_vortsheet.size(); j++){
-            
-            dx_ij = x_i-m_vortsheet.xc[j];
-            dz_ij = z_i-m_vortsheet.zc[j]; 
-            dr_ij2 = std::pow(dx_ij,2) + std::pow(dz_ij,2);
-            dr_ij = std::sqrt(dr_ij2);
             
             c1 = -(m_vortex.x[i]-m_vortsheet.xc[j])*cos(m_vortsheet.theta[j])-(m_vortex.z[i]-m_vortsheet.zc[j])*sin(m_vortsheet.theta[j]);
             c2 = std::pow((m_vortex.x[i]-m_vortsheet.xc[j]),2)+std::pow((m_vortex.z[i]-m_vortsheet.zc[j]),2);
@@ -619,16 +606,30 @@ void DVMBase::vortexsheetbc()
                 
             qy[i][j]= cos(m_vortsheet.theta[j])+0.5*c9*c6/m_vortsheet.ds[j]+(c1*sin(m_vortsheet.theta[j])-c5*cos(m_vortsheet.theta[j]))*c7/m_vortsheet.ds[j];
             py[i][j]=0.5*c6*cos(m_vortsheet.theta[j])-c7*sin(m_vortsheet.theta[j])-qy[i][j];
-                
-            if(j == m_vortsheet.size()-1){
-                m_vortex.uvs[i]=(px[i][m_vortsheet.size()-1]*m_vortsheet.gamma[m_vortsheet.size()-1]+qx[i][m_vortsheet.size()-1]*m_vortsheet.gamma[0]);
-                m_vortex.wvs[i]=(py[i][m_vortsheet.size()-1]*m_vortsheet.gamma[m_vortsheet.size()-1]-qy[i][m_vortsheet.size()-1]*m_vortsheet.gamma[0]);
-            }else{
-                m_vortex.uvs[i]=(px[i][j]*m_vortsheet.gamma[j]+qx[i][j]*m_vortsheet.gamma[j+1]);
-                m_vortex.wvs[i]=(py[i][j]*m_vortsheet.gamma[j]+qy[i][j]*m_vortsheet.gamma[j+1]);
-            }
         }
     }
+    
+    // calculate the vortexsheet induced velocities
+    unsigned last = m_vortsheet.size()-1;
+    
+    for(unsigned i=0; i<m_vortex.size(); i++){
+        
+        m_vortex.uvs[i] = 0.0;
+        m_vortex.wvs[i] = 0.0;
+        
+        for(unsigned j=0; j<m_vortsheet.size(); j++){
+            if(j == last){
+                m_vortex.uvs[i] += px[i][last]*m_vortsheet.gamma[last] + qx[i][last]*m_vortsheet.gamma[0];
+                m_vortex.wvs[i] += py[i][last]*m_vortsheet.gamma[last] + qy[i][last]*m_vortsheet.gamma[0];
+            }else{
+                m_vortex.uvs[i] += px[i][j]*m_vortsheet.gamma[j] + qx[i][j]*m_vortsheet.gamma[j+1];
+                m_vortex.wvs[i] += py[i][j]*m_vortsheet.gamma[j] + qy[i][j]*m_vortsheet.gamma[j+1];
+            }
+        }
+        m_vortex.uvs[i] *= m_rpi2;
+        m_vortex.wvs[i] *= m_rpi2;
+    }
+    
 }
 
 void DVMBase::imagebc()
