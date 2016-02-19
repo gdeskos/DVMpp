@@ -25,8 +25,7 @@ void VortexBlobs::resize(unsigned size)
 double VortexBlobs::totalcirc()
 { 
     double sum=0.0;
-    for(unsigned i=0;i<size();i++)
-    {
+    for(unsigned i=0; i<size(); i++){
         sum=sum+circ[i];
     }
     return sum;

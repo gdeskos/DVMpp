@@ -2,7 +2,7 @@
 #include <cmath>
 #include <armadillo>
 #include <time.h>
-
+#include <iomanip>
 
 DVMBase::DVMBase()
 {
@@ -192,82 +192,78 @@ void DVMBase::compute_influence_matrix()
 {
     
     //========================================================================
-    // Compute influence matrix according to coefficients from Kuette and Chow
+    // Compute influence matrix according to coefficients after Mogenthal
     // =======================================================================
     
-    m_infM.resize(m_n,std::vector<double>(m_n));
-    double c1,c2,c3,c4,c5,c6,c7,c8,c9;
-    Matrix CN1,CN2;
-    CN1.resize(m_vortsheet.size(),std::vector<double>(m_vortsheet.size()));
-    CN2.resize(m_vortsheet.size(),std::vector<double>(m_vortsheet.size()));
-    const double pi=4.0*atan(1.0);
-    const double rpi2=1.0/(2.0*pi);
+    std::cout << "m_n = " << m_n << std::endl;
+    std::cout << "m_body.size() = " << m_body.size() << std::endl;
+    std::cout << "m_vortsheet.size() = " << m_vortsheet.size() << std::endl;
     
-    for(unsigned i=0; i<m_vortsheet.size();i++)
-    {
-        for(unsigned j=1; j<m_vortsheet.size();j++)
-        {
+
+    // Follow Morgenthal (2002)
+   
+    unsigned M = m_vortsheet.size();
+    
+    m_infM.resize(M+1,std::vector<double> (M));
+   
+    std::cout << "m_infM.size(1) " << m_infM.size() << std::endl;
+    std::cout << "m_infM.size(2) " << m_infM[0].size() << std::endl;
+    
+   // throw std::string("Stop here");
+    
+    double c1,c2,c3,c4,c5,c6,c7,c8,c9;
+    Matrix p,q;
+    p.resize(M, std::vector<double>(M));
+    q.resize(M, std::vector<double>(M));
+    
+    for(unsigned i=0; i<M; i++){
+        for(unsigned j=0; j<M; j++){
             if(i==j){
-                CN1[i][j]=-1.0;
-                CN2[i][j]=1.0;
+                p[i][j] = -1.0;
+                q[i][j] = 1.0;
             }else{
-                c1 = -(m_vortsheet.xc[i]-m_body.x[j])*cos(m_vortsheet.theta[j])-(m_vortsheet.zc[i]-m_body.z[j])*sin(m_vortsheet.theta[j]);
-                c2 = std::pow((m_vortsheet.xc[i]-m_body.x[j]),2)+std::pow((m_vortsheet.zc[i]-m_body.z[j]),2);
-                c3 = sin(m_vortsheet.theta[i]- m_vortsheet.theta[j]);
-                c4 = cos(m_vortsheet.theta[i]- m_vortsheet.theta[j]);
-                c5 = (m_vortsheet.xc[i]-m_body.x[j])*sin(m_vortsheet.theta[j])-(m_vortsheet.zc[i]-m_body.z[j])*cos(m_vortsheet.theta[j]);
+                c1 = -(m_vortsheet.xc[i]-m_body.x[j])*cos(m_vortsheet.theta[j]) - (m_vortsheet.zc[i]-m_body.z[j])*sin(m_vortsheet.theta[j]);
+                c2 = std::pow((m_vortsheet.xc[i]-m_body.x[j]),2) + std::pow((m_vortsheet.zc[i]-m_body.z[j]),2);
+                c3 = sin(m_vortsheet.theta[i] - m_vortsheet.theta[j]);
+                c4 = cos(m_vortsheet.theta[i] - m_vortsheet.theta[j]);
+                c5 = (m_vortsheet.xc[i]-m_body.x[j])*sin(m_vortsheet.theta[j]) - (m_vortsheet.zc[i]-m_body.z[j])*cos(m_vortsheet.theta[j]);
                 c6 = log(1.0 + m_vortsheet.ds[j]*((m_vortsheet.ds[j]+2*c1)/c2));
                 c7 = atan2((c5*m_vortsheet.ds[j]),(c2+c1*m_vortsheet.ds[j]));
-                c8 = (m_vortsheet.xc[i]-m_body.x[j])*sin(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j])+(m_vortsheet.zc[i]-m_body.z[j])*cos(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]);
-                c9 = (m_vortsheet.xc[i]-m_body.x[j])*cos(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j])-(m_vortsheet.zc[i]-m_body.z[j])*sin(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]);
+                c8 = (m_vortsheet.xc[i]-m_body.x[j])*sin(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]) + (m_vortsheet.zc[i]-m_body.z[j])*cos(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]);
+                c9 = (m_vortsheet.xc[i]-m_body.x[j])*cos(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]) - (m_vortsheet.zc[i]-m_body.z[j])*sin(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]);
                 
-                CN2[i][j] = c4 + 0.5*c9*c6/m_vortsheet.ds[j] - ((c1*c3 + c4*c5)*c7)/m_vortsheet.ds[j];
-                CN1[i][j] = 0.5*c4*c6 + c3*c7 - CN2[i][j];
+                q[i][j] = c4 + 0.5*c9*c6/m_vortsheet.ds[j] - ((c1*c3 + c4*c5)*c7)/m_vortsheet.ds[j];
+                p[i][j] = 0.5*c4*c6 + c3*c7 - q[i][j];
             }
         }
     }
     
-    for(unsigned i=0; i<m_vortsheet.size();i++)
-    {
-        m_infM[i][0]= rpi2*CN1[i][0];
-        m_infM[i][m_vortsheet.size()]=rpi2*CN2[i][m_vortsheet.size()-1];
-        for(unsigned j=1; j<m_vortsheet.size();j++)
-        {
-            m_infM[i][j]=rpi2*(CN1[i][j]+CN2[i][j-1]);
+    for(unsigned i=0; i<M; i++){
+        
+        m_infM[i][0] =  m_rpi2 * (p[i][0] + q[i][M-1]);
+        
+        for(unsigned j=1; j<M; j++){
+            m_infM[i][j] = m_rpi2 * ( p[i][j] + q[i][j-1] );
         }
     }
     
-    m_infM[m_vortsheet.size()][0]=1.0;
-    m_infM[m_vortsheet.size()][m_vortsheet.size()]=1.0;
-    
-    for(unsigned j=1;j<m_vortsheet.size();j++)
-    {
-        m_infM[m_vortsheet.size()][j]=0.0;
-    }
-    
-    
-    // JS - remove this condition for now
-    /*
     // Enforcing the total circulation
-    for(unsigned j=0;j<m_vortsheet.size();j++)
-    {
-        m_infM[m_vortsheet.size()+1][j]=m_vortsheet.ds[j]; // Was this a bug here? Index + 1
+    for(unsigned j=0; j<M; j++){
+        m_infM[M][j] = m_vortsheet.ds[j];
     }
-    */
     
     // Print the matrix
-    /*
+    
     //===============================================
     for (unsigned i=0;i<m_infM.size();i++){
         for(unsigned j=0;j<m_infM[0].size();j++){
-            std::cout<<m_infM[i][j]<<'\t';
+            std::cout<< std::setprecision(3) <<m_infM[i][j]<<'\t';
         }
         std::cout<<"\n";
     }
     //==============================================
-    
-    throw std::string("Stop here");
-    */
+
+   // throw std::string("Stop here");
     
     std::cout << "Computed influence matrix of size " << m_infM.size() << "," << m_infM[0].size() << " after Kuette and Chow" << std::endl;
 }
@@ -485,16 +481,19 @@ void DVMBase::solvevortexsheet()
     double dK_ij, zkernel;
     double x_i,z_i,u_i,w_i,c_i;
     
+    unsigned M = m_vortsheet.size();
+    
     std::vector<double> brhs; 
-    brhs.resize(m_n+1);
+    brhs.resize(m_infM.size()); //size M+1 (rows of influence Matrix)
     
    if(m_vortex.size()==0){
 
-       for(unsigned i=0;i<m_vortsheet.size();i++){
-           brhs[i]=( m_Ux*m_vortsheet.enx[i] + m_Uz*m_vortsheet.enz[i]);
+       for(unsigned i=0; i<M; i++){
+           brhs[i] = ( m_Ux*m_vortsheet.enx[i] + m_Uz*m_vortsheet.enz[i]);
        }
-       brhs[m_vortsheet.size()]=brhs[0];
-       brhs[m_vortsheet.size()+1]=0;
+       //brhs[m_vortsheet.size()]=brhs[0];
+       
+       brhs[M] = -m_vortex.totalcirc();;
     
    }else{
         std::vector<double> u,w; 
@@ -534,47 +533,95 @@ void DVMBase::solvevortexsheet()
             }
         }
        
-       for(unsigned i=0;i<m_vortsheet.size();i++){
-            u[i]=rpi2*u[i];
-            w[i]=rpi2*w[i];
+       for(unsigned i=0; i<M; i++){
+            u[i] = rpi2*u[i];
+            w[i] = rpi2*w[i];
        }    
 
-       for(unsigned i=0;i<m_vortsheet.size();i++){
-           brhs[i]=((m_Ux+u[i])*m_vortsheet.enx[i]+(m_Uz+w[i])*m_vortsheet.enz[i]);
-       }    
-       brhs[m_vortsheet.size()]=brhs[0]; 
-      
-       //JS remove the total circulation condition for now
-       //brhs[m_vortsheet.size()+1]=-m_vortex.totalcirc();
+       for(unsigned i=0; i<M; i++){
+           brhs[i] = ( (m_Ux+u[i])*m_vortsheet.enx[i] + (m_Uz+w[i])*m_vortsheet.enz[i] ); //there is a minus and a 2Pi here in Morgenthal
+       }
+       //brhs[brhs.size()-1]=brhs[0];
+       
+       brhs[M] = -m_vortex.totalcirc();
    }
-
+    
+    /*std::cout << "RHS is: " << std::endl;
+    for(unsigned i=0; i<brhs.size(); i++){
+        std::cout << i << " = " << brhs[i] << std::endl;
+    }*/
+    
+    //throw std::string("Stop here");
+    
     // Use Armadillo to solve the overdetermined system
-    arma::mat M,B,X;
+    arma::mat MM,B,X;
    
     //JS remove last entry
     //M.zeros(m_n+1,m_n);
     //B.zeros(m_n+1,1);
-    M.zeros(m_n,m_n);
-    B.zeros(m_n,1);
+    MM.zeros(m_infM.size(),m_infM[0].size());
+    B.zeros(brhs.size(),1);
     
     // Copy Files into Armadillo format
     //for(unsigned i=0; i<m_n+1; i++){ //JS edit
-    for(unsigned i=0; i<m_n; i++){
+    for(unsigned i=0; i< B.n_rows; i++){
         B(i,0) = brhs[i];
-        for(unsigned j=0; j<m_n; j++){
-            M(i,j) = m_infM[i][j];
+    }
+    
+    for(unsigned i=0; i< MM.n_rows; i++){
+        for(unsigned j=0; j < MM.n_cols ; j++){
+            MM(i,j) = m_infM[i][j];
         }
     }
     
+    
     // Solve system
-    X = arma::solve(M.t()*M,M.t()*B);
+    X = arma::solve(MM.t()*MM,MM.t()*B);
     
     // Copy back to the vortexsheet
     for(unsigned j=1; j<m_vortsheet.size()-1; j++){
-        m_vortsheet.gamma[j]=X(j,0);
+        m_vortsheet.gamma[j] = X(j,0);
     }
-    m_vortsheet.gamma[0]=0.5*(X(0,0)+X(m_vortsheet.size(),0));
-    m_vortsheet.gamma[m_vortsheet.size()-1]=0.5*(X(0,0)+X(m_vortsheet.size(),0));
+    
+    // NOT SURE ABOUT INDEX here - the last element seems incorrect
+    m_vortsheet.gamma[0]                    = 0.5*(X(0,0)+X(X.n_rows-1,0));
+    //m_vortsheet.gamma[m_vortsheet.size()-1] = 0.5*(X(0,0)+X(X.n_rows-1,0));
+    
+    
+    
+    /*
+    
+    // Print the RHS
+    for (unsigned i=0; i < B.n_rows; i++){
+        std::cout << i << "\t" << B(i,0) << std::endl;
+    }
+    std::cout << std::endl;
+    
+    // Print the matrix
+    //===============================================
+    for (unsigned i=0; i< MM.n_rows; i++){
+        for(unsigned j=0; j< MM.n_cols; j++){
+            std::cout<< std::setprecision(3) << MM(i,j)<<'\t';
+        }
+        std::cout << std::endl;
+    }
+    std::cout << std::endl;
+    //==============================================
+    
+    // Print the solution
+    for (unsigned i=0; i < X.n_rows; i++){
+        std::cout << i << "\t" << X(i,0) << std::endl;
+    }
+    
+    // Print the circulation
+    for (unsigned i=0; i < m_vortsheet.size(); i++){
+        std::cout << "gamma = " << i << "\t" << m_vortsheet.gamma[i] << std::endl;
+    }
+    std::cout << std::endl;
+    
+    throw std::string("Stop here");
+     */
+    
 }
 
 void DVMBase::vortexsheetbc()
