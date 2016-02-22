@@ -588,21 +588,30 @@ void DVMBase::vortexsheetbc()
     // compute the coefficients
     #pragma omp parallel for
     for(unsigned i=0; i<m_vortex.size(); i++){
+        
+        double xi = m_vortex.x[i];
+        double zi = m_vortex.z[i];
+        
         for(unsigned j=0; j<m_vortsheet.size(); j++){
+
+            double xj = m_vortsheet.xc[j];
+            double zj = m_vortsheet.zc[j];
+            double thetaj = m_vortsheet.theta[j];
+            double dsj = m_vortsheet.ds[j];
             
-            c1 = -(m_vortex.x[i]-m_vortsheet.xc[j])*cos(m_vortsheet.theta[j])-(m_vortex.z[i]-m_vortsheet.zc[j])*sin(m_vortsheet.theta[j]);
-            c2 = std::pow((m_vortex.x[i]-m_vortsheet.xc[j]),2)+std::pow((m_vortex.z[i]-m_vortsheet.zc[j]),2);
-            c5 = (m_vortex.x[i]-m_vortsheet.xc[j])*sin(m_vortsheet.theta[j])-(m_vortex.z[i]-m_vortsheet.zc[j])*cos(m_vortsheet.theta[j]);
-            c6 = log(1.0 + m_vortsheet.ds[j]*((m_vortsheet.ds[j]+2*c1)/c2));
-            c7 = atan2((c5*m_vortsheet.ds[j]),(c2+c1*m_vortsheet.ds[j]));
-            c8 = (m_vortex.x[i]-m_vortsheet.xc[j])*sin(-2.0*m_vortsheet.theta[j])+(m_vortex.z[i]-m_vortsheet.zc[j])*cos(-2.0*m_vortsheet.theta[j]);
-            c9 = (m_vortex.x[i]-m_vortsheet.xc[j])*cos(-2.0*m_vortsheet.theta[j])+(m_vortex.z[i]-m_vortsheet.zc[j])*sin(-2.0*m_vortsheet.theta[j]);
+            c1 = -(xi-xj)*cos(thetaj) - (zi-zj)*sin(thetaj);
+            c2 = std::pow(xi-xj,2.0) + std::pow(zi-zj,2.0);
+            c5 = (xi-xj)*sin(thetaj) - (zi-zj)*cos(thetaj);
+            c6 = log(1.0 + dsj*( (dsj + 2*c1) / c2));
+            c7 = atan2( c5*dsj , c2 + c1*dsj );
+            c8 = (xi-xj)*sin(-2.0*thetaj) + (zi-zj)*cos(-2.0*thetaj);
+            c9 = (xi-xj)*cos(-2.0*thetaj) - (zi-zj)*sin(-2.0*thetaj);
                 
-            qx[i][j]=-sin(m_vortsheet.theta[j])+0.5*c8*c6/m_vortsheet.ds[j]+(c1*cos(m_vortsheet.theta[j])+c5*sin(m_vortsheet.theta[j]))*c7/m_vortsheet.ds[j];
-            px[i][j]=-0.5*c6*sin(m_vortsheet.theta[j])-c7*cos(m_vortsheet.theta[j])-qx[i][j];
+            qx[i][j] = -sin(thetaj) + 0.5*c8*c6/dsj + (c1*cos(thetaj) + c5*sin(thetaj))*c7/dsj;
+            px[i][j] = -0.5*c6*sin(thetaj) - c7*cos(thetaj) - qx[i][j];
                 
-            qy[i][j]= cos(m_vortsheet.theta[j])+0.5*c9*c6/m_vortsheet.ds[j]+(c1*sin(m_vortsheet.theta[j])-c5*cos(m_vortsheet.theta[j]))*c7/m_vortsheet.ds[j];
-            py[i][j]=0.5*c6*cos(m_vortsheet.theta[j])-c7*sin(m_vortsheet.theta[j])-qy[i][j];
+            qy[i][j] =  cos(thetaj) + 0.5*c9*c6/dsj + (c1*sin(thetaj) - c5*cos(thetaj))*c7/dsj;
+            py[i][j] =  0.5*c6*cos(thetaj) - c7*sin(thetaj) - qy[i][j];
         }
     }
     
