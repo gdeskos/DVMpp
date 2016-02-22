@@ -202,9 +202,9 @@ void DVMBase::compute_influence_matrix()
 
     // Follow Morgenthal (2002)
    
-    unsigned M = m_vortsheet.size();
+    unsigned Nl = m_vortsheet.size();
     
-    m_infM.resize(M+1,std::vector<double> (M));
+    m_infM.resize(Nl+1,std::vector<double> (Nl));
    
     std::cout << "m_infM.size(1) " << m_infM.size() << std::endl;
     std::cout << "m_infM.size(2) " << m_infM[0].size() << std::endl;
@@ -213,43 +213,55 @@ void DVMBase::compute_influence_matrix()
     
     double c1,c2,c3,c4,c5,c6,c7,c8,c9;
     Matrix p,q;
-    p.resize(M, std::vector<double>(M));
-    q.resize(M, std::vector<double>(M));
+    p.resize(Nl, std::vector<double>(Nl));
+    q.resize(Nl, std::vector<double>(Nl));
     
-    for(unsigned i=0; i<M; i++){
-        for(unsigned j=0; j<M; j++){
+    for(unsigned i=0; i<Nl; i++){
+        
+        double xci      = m_vortsheet.xc[i];
+        double zci      = m_vortsheet.zc[i];
+        double thetai   = m_vortsheet.theta[i];
+        
+        for(unsigned j=0; j<Nl; j++){
             if(i==j){
                 p[i][j] = -1.0;
                 q[i][j] = 1.0;
             }else{
-                c1 = -(m_vortsheet.xc[i]-m_body.x[j])*cos(m_vortsheet.theta[j]) - (m_vortsheet.zc[i]-m_body.z[j])*sin(m_vortsheet.theta[j]);
-                c2 = std::pow((m_vortsheet.xc[i]-m_body.x[j]),2) + std::pow((m_vortsheet.zc[i]-m_body.z[j]),2);
-                c3 = sin(m_vortsheet.theta[i] - m_vortsheet.theta[j]);
-                c4 = cos(m_vortsheet.theta[i] - m_vortsheet.theta[j]);
-                c5 = (m_vortsheet.xc[i]-m_body.x[j])*sin(m_vortsheet.theta[j]) - (m_vortsheet.zc[i]-m_body.z[j])*cos(m_vortsheet.theta[j]);
-                c6 = log(1.0 + m_vortsheet.ds[j]*((m_vortsheet.ds[j]+2*c1)/c2));
-                c7 = atan2((c5*m_vortsheet.ds[j]),(c2+c1*m_vortsheet.ds[j]));
-                c8 = (m_vortsheet.xc[i]-m_body.x[j])*sin(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]) + (m_vortsheet.zc[i]-m_body.z[j])*cos(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]);
-                c9 = (m_vortsheet.xc[i]-m_body.x[j])*cos(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]) - (m_vortsheet.zc[i]-m_body.z[j])*sin(m_vortsheet.theta[i]-2.0*m_vortsheet.theta[j]);
                 
-                q[i][j] = c4 + 0.5*c9*c6/m_vortsheet.ds[j] - ((c1*c3 + c4*c5)*c7)/m_vortsheet.ds[j];
+                double xj = m_body.x[j];
+                double zj = m_body.z[j];
+                double thetaj   = m_vortsheet.theta[j];
+                
+                double dsj = m_vortsheet.ds[j];
+                
+                c1 = -(xci-xj)*cos(thetaj) - (zci-zj)*sin(thetaj);
+                c2 = std::pow(xci-xj,2) + std::pow(zci-zj,2);
+                c3 = sin(thetai - thetaj);
+                c4 = cos(thetai - thetaj);
+                c5 = (xci-xj)*sin(thetaj) - (zci-zj)*cos(thetaj);
+                c6 = log(1.0 + dsj*( (dsj + 2*c1) / c2) );
+                c7 = atan2((c5*dsj),(c2+c1*dsj));
+                c8 = (xci-xj)*sin(thetai-2.0*thetaj) + (zci-zj)*cos(thetai-2.0*thetaj);
+                c9 = (xci-xj)*cos(thetai-2.0*thetaj) - (zci-zj)*sin(thetai-2.0*thetaj);
+                
+                q[i][j] = c4 + 0.5*c9*c6/dsj - ((c1*c3 + c4*c5)*c7)/dsj;
                 p[i][j] = 0.5*c4*c6 + c3*c7 - q[i][j];
             }
         }
     }
     
-    for(unsigned i=0; i<M; i++){
+    for(unsigned i=0; i<Nl; i++){
         
-        m_infM[i][0] =  m_rpi2 * (p[i][0] + q[i][M-1]);
+        m_infM[i][0] =  m_rpi2 * (p[i][0] + q[i][Nl-1]);
         
-        for(unsigned j=1; j<M; j++){
+        for(unsigned j=1; j<Nl; j++){
             m_infM[i][j] = m_rpi2 * ( p[i][j] + q[i][j-1] );
         }
     }
     
     // Enforcing the total circulation
-    for(unsigned j=0; j<M; j++){
-        m_infM[M][j] = m_vortsheet.ds[j];
+    for(unsigned j=0; j<Nl; j++){
+        m_infM[Nl][j] = m_vortsheet.ds[j];
     }
     
     // Print the matrix
@@ -263,7 +275,7 @@ void DVMBase::compute_influence_matrix()
     }
     //==============================================
 
-   // throw std::string("Stop here");
+    //throw std::string("Stop here");
     
     std::cout << "Computed influence matrix of size " << m_infM.size() << "," << m_infM[0].size() << " after Kuette and Chow" << std::endl;
 }
@@ -315,64 +327,6 @@ void DVMBase::write_outputs()
     }
 }
 
-/*
-void DVMBase::biotsavart()
-{
-    double rsigmasqr;
-    double rpi2 = 1.0 / (2.0 * m_pi);
-    double dx_ij,dz_ij,dr_ij2,threshold,xkernel;
-    double dK_ij, zkernel;
-
-    for(unsigned i=0; i<m_vortex.size(); i++){
-        m_vortex.u[i]=0.0;
-        m_vortex.w[i]=0.0;
-    }
- 
-    double x_i,z_i,u_i,w_i,c_i;
-
-
-    for(unsigned i=0; i<m_vortex.size(); i++){
-        x_i = m_vortex.x[i];
-        z_i = m_vortex.z[i];
-        u_i = 0.0;
-        w_i = 0.0;
-        c_i = m_vortex.circ[i];
-
-        for(unsigned j=i+1; j<m_vortex.size(); j++){
-            dx_ij = x_i - m_vortex.x[j];
-            dz_ij = z_i - m_vortex.z[j];
-            dr_ij2 = std::pow(dx_ij,2) + std::pow(dz_ij,2);
-            
-            threshold = 10.0 * std::pow(m_vortex.sigma[j],2);
-            rsigmasqr = 1.0/std::pow(m_vortex.sigma[j],2);
-
-            if(dr_ij2<threshold){
-                dK_ij=(1.0 - std::exp(-dr_ij2*rsigmasqr))/dr_ij2;
-            }else{
-                dK_ij= 1.0/dr_ij2;
-            }
-
-            xkernel = dK_ij*dz_ij;
-            zkernel = dK_ij*dx_ij;
-            u_i -= xkernel*m_vortex.circ[j];
-            w_i += zkernel*m_vortex.circ[j];
-            m_vortex.u[j] += xkernel*c_i;
-            m_vortex.w[j] -= zkernel*c_i;
-        }
-        m_vortex.u[i] += u_i;
-        m_vortex.w[i] += w_i;
-        
-    }
-
-    for(unsigned i=0;i<m_vortex.size();i++){
-        m_vortex.u[i] *= rpi2;
-        m_vortex.w[i] *= rpi2;
-    
-        //std::cout << "Vortex [" << i << "] u = " << m_vortex.u[i] << " w = " << m_vortex.w[i] << std::endl;
-        
-    }
-}
- */
 
 void DVMBase::biotsavart()
 {
@@ -392,7 +346,7 @@ void DVMBase::biotsavart()
                 dz_ij = m_vortex.z[i] - m_vortex.z[j];
                 dr_ij2 = std::pow(dx_ij,2) + std::pow(dz_ij,2.0);
             
-                threshold = m_kernel_threshold * std::pow(m_vortex.sigma[j],2.0); // take the threshold number into the script
+                threshold = m_kernel_threshold * std::pow(m_vortex.sigma[j],2.0);
                 rsigmasqr = 1.0/std::pow(m_vortex.sigma[j],2.0);
             
                 if(dr_ij2<threshold){
@@ -410,10 +364,6 @@ void DVMBase::biotsavart()
         
     }
 }
-
- 
- 
-
 
 
 void DVMBase::convect(unsigned order)
@@ -515,7 +465,7 @@ void DVMBase::solvevortexsheet()
                 dz_ij = z_i-m_vortex.z[j];
                 dr_ij2 = std::pow(dx_ij,2)+std::pow(dz_ij,2);
             
-                threshold = 10.0 * std::pow(m_vortex.sigma[j],2);
+                threshold = m_kernel_threshold * std::pow(m_vortex.sigma[j],2);
                 rsigmasqr = 1.0/std::pow(m_vortex.sigma[j],2);
 
                 if(dr_ij2<threshold){
@@ -721,7 +671,7 @@ void DVMBase::imagebc()
             dr_ij2 = std::pow(dx_ij,2)+std::pow(dz_ij,2);
             
             // Not sure what sigma we need to use here.
-            threshold = 10.0 * std::pow(m_vortex.sigma[j],2);
+            threshold = m_kernel_threshold * std::pow(m_vortex.sigma[j],2);
             rsigmasqr = 1.0/std::pow(m_vortex.sigma[j],2);
 
             if(dr_ij2<threshold)
@@ -749,12 +699,7 @@ void DVMBase::imagebc()
 
 void DVMBase::diffrw()
 {
-    std::vector<double> rrw, thetarw;
-    
-    rrw.resize(m_vortex.size());
-    thetarw.resize(m_vortex.size());
-    
-    double R1, R2;
+    double R1, R2, rrw, thetarw;
     
     unsigned short seed=time(NULL)*1000000;
     seed48(&seed);
@@ -766,25 +711,19 @@ void DVMBase::diffrw()
         R2 = drand48();
         
         // Calculate r and theta for the random walk
-        rrw[i] = std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R1));
-        thetarw[i] = 2.0*m_pi*R2;
+        rrw     = std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R1));
+        thetarw = 2.0*m_pi*R2;
         
-        m_vortex.x[i] += rrw[i]*cos(thetarw[i]);
-        m_vortex.z[i] += rrw[i]*sin(thetarw[i]);
+        m_vortex.x[i] += rrw*cos(thetarw);
+        m_vortex.z[i] += rrw*sin(thetarw);
     }
 }
 
 void DVMBase::diffuse_vs_rw()
 {
     double tmpx, tmpz, tmpc, tmpsigma;
-    
-    std::vector<double> rrw,rrwh, thetarw, thetarwh;
-    rrwh.resize(m_vortsheet.size()); 
-    rrw.resize(m_vortsheet.size());
-    thetarw.resize(m_vortsheet.size());
-    thetarwh.resize(m_vortsheet.size());
-    
-    double R1, R2, R3, R4;
+
+    double R1, R2, rrw, thetarw ;
     
     unsigned short seed=time(NULL)*1000000;
     seed48(&seed);
@@ -797,12 +736,12 @@ void DVMBase::diffuse_vs_rw()
         R1 = drand48();
         R2 = drand48();
         
-        rrw[i] = std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R1));
-        thetarw[i] = 2.0*m_pi*R2;
+        rrw     = std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R1));
+        thetarw = 2.0*m_pi*R2;
         
         // The position of the released vortex blox after diffusion using random walk
-        tmpx = m_vortsheet.xc[i]+rrw[i]*cos(thetarw[i]);
-        tmpz = m_vortsheet.zc[i]+rrw[i]*sin(thetarw[i]);
+        tmpx = m_vortsheet.xc[i]+rrw*cos(thetarw);
+        tmpz = m_vortsheet.zc[i]+rrw*sin(thetarw);
         
         // Obtain the circulation - this is UNCLEAR
         if(i==m_vortsheet.size()-1){
@@ -1153,7 +1092,7 @@ void DVMBase::probe_velocities()
             dz_ij = z_i-m_vortex.z[j];
             dr_ij2 = std::pow(dx_ij,2)+std::pow(dz_ij,2);
             
-            threshold = 10.0 * std::pow(m_vortex.sigma[j],2);
+            threshold = m_kernel_threshold * std::pow(m_vortex.sigma[j],2);
             rsigmasqr = 1.0/std::pow(m_vortex.sigma[j],2);
 
             if(dr_ij2<threshold)
