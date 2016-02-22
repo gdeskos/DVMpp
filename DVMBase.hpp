@@ -77,9 +77,9 @@ public:
      //std::vector<double> xi_rw, eta_rw; // Why were these here???
      std::vector<double> uvs, wvs, uI, wI;
      std::vector<double> m_gamma_prev;
-     std::vector<double> m_Gamma_abs;     
+     //std::vector<double> m_Gamma_abs;
      double m_dt, m_nu, m_Ux, m_Uz, m_n, m_np;
-     double m_kernel_threshold;
+     double m_kernel_threshold, m_sigma_cutoff;
      double m_time;
      unsigned m_step, m_steps;
      double m_GammaDel, m_maxGamma;

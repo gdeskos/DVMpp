@@ -31,6 +31,10 @@ void DVMBase::init(pugi::xml_document& xml_doc)
     double kernel = atof(xml_doc.child("IC2DDVM").child("constants").child("kernel_threshold").attribute("val").value());
     if(kernel <=0){ throw std::string("<IC2DDVM><constants><kernel_threshold> must be larger than zero");}
     
+    double cutoff = atof(xml_doc.child("IC2DDVM").child("constants").child("sigma_cutoff").attribute("val").value());
+    if(cutoff <=0){ throw std::string("<IC2DDVM><constants><sigma_cutoff> must be larger than zero");}
+    if(cutoff >=1){ throw std::string("<IC2DDVM><constants><sigma_cutoff> must be less than one");}
+    
     double dt = atof(xml_doc.child("IC2DDVM").child("time").child("dt").attribute("val").value());
     if(dt <=0){ throw std::string("<IC2DDVM><time><dt> must be larger than zero");}
     
@@ -51,8 +55,9 @@ void DVMBase::init(pugi::xml_document& xml_doc)
     
     
     //Parameters
-    m_maxGamma=max_gamma;
+    m_maxGamma = max_gamma;
     m_kernel_threshold = kernel;
+    m_sigma_cutoff = cutoff;
     
     m_dt=dt;
     m_rho=rho;
@@ -179,7 +184,7 @@ void DVMBase::form_vortex_sheet()
     }
     
     
-    m_Gamma_abs.resize(m_vortsheet.size());
+    //m_Gamma_abs.resize(m_vortsheet.size());
     
     m_vortsheet.print_collocation();
     m_vortsheet.print_unit_vectors();
@@ -431,19 +436,17 @@ void DVMBase::solvevortexsheet()
     double dK_ij, zkernel;
     double x_i,z_i,u_i,w_i,c_i;
     
-    unsigned M = m_vortsheet.size();
+    unsigned Nl = m_vortsheet.size();
     
     std::vector<double> brhs; 
-    brhs.resize(m_infM.size()); //size M+1 (rows of influence Matrix)
+    brhs.resize(Nl + 1);
     
    if(m_vortex.size()==0){
 
-       for(unsigned i=0; i<M; i++){
+       for(unsigned i=0; i<Nl; i++){
            brhs[i] = ( m_Ux*m_vortsheet.enx[i] + m_Uz*m_vortsheet.enz[i]);
        }
-       //brhs[m_vortsheet.size()]=brhs[0];
-       
-       brhs[M] = -m_vortex.totalcirc();;
+       brhs[Nl] = -m_vortex.totalcirc();;
     
    }else{
         std::vector<double> u,w; 
@@ -483,32 +486,21 @@ void DVMBase::solvevortexsheet()
             }
         }
        
-       for(unsigned i=0; i<M; i++){
+       for(unsigned i=0; i<Nl; i++){
             u[i] = rpi2*u[i];
             w[i] = rpi2*w[i];
        }    
 
-       for(unsigned i=0; i<M; i++){
-           brhs[i] = ( (m_Ux+u[i])*m_vortsheet.enx[i] + (m_Uz+w[i])*m_vortsheet.enz[i] ); //there is a minus and a 2Pi here in Morgenthal
+       // Not entirely convinced that this is the correct BC (see Morgenthal)
+       for(unsigned i=0; i<Nl; i++){
+           brhs[i] = ( (m_Ux+u[i])*m_vortsheet.enx[i] + (m_Uz+w[i])*m_vortsheet.enz[i] );
        }
-       //brhs[brhs.size()-1]=brhs[0];
-       
-       brhs[M] = -m_vortex.totalcirc();
+       brhs[Nl] = -m_vortex.totalcirc();
    }
-    
-    /*std::cout << "RHS is: " << std::endl;
-    for(unsigned i=0; i<brhs.size(); i++){
-        std::cout << i << " = " << brhs[i] << std::endl;
-    }*/
-    
-    //throw std::string("Stop here");
     
     // Use Armadillo to solve the overdetermined system
     arma::mat MM,B,X;
    
-    //JS remove last entry
-    //M.zeros(m_n+1,m_n);
-    //B.zeros(m_n+1,1);
     MM.zeros(m_infM.size(),m_infM[0].size());
     B.zeros(brhs.size(),1);
     
@@ -524,26 +516,21 @@ void DVMBase::solvevortexsheet()
         }
     }
     
-    
     // Solve system
     X = arma::solve(MM.t()*MM,MM.t()*B);
     
-    // Copy back to the vortexsheet
-    for(unsigned j=1; j<m_vortsheet.size()-1; j++){
-        m_vortsheet.gamma[j] = X(j,0);
+    // Copy back to the vortexsheet - removed special treatment here
+    // Why was this included? gamma_0 simply solution of Matrix
+    for(unsigned i=0; i<m_vortsheet.size(); i++){
+        m_vortsheet.gamma[i] = X(i,0);
     }
-    
-    // NOT SURE ABOUT INDEX here - the last element seems incorrect
-    m_vortsheet.gamma[0]                    = 0.5*(X(0,0)+X(X.n_rows-1,0));
-    //m_vortsheet.gamma[m_vortsheet.size()-1] = 0.5*(X(0,0)+X(X.n_rows-1,0));
-    
     
     
     /*
     
     // Print the RHS
     for (unsigned i=0; i < B.n_rows; i++){
-        std::cout << i << "\t" << B(i,0) << std::endl;
+        std::cout << "RHS " << i << "\t" << B(i,0) << std::endl;
     }
     std::cout << std::endl;
     
@@ -558,9 +545,25 @@ void DVMBase::solvevortexsheet()
     std::cout << std::endl;
     //==============================================
     
+    // Test that the output is correct and satisfies Ax = b
+    std::vector<double> brhs_check;
+    brhs_check.resize(Nl+1);
+    for (unsigned i=0; i<Nl+1; i++){
+        brhs_check[i] = 0;
+        for (unsigned j=0; j<Nl; j++){
+            brhs_check[i] += m_infM[i][j]*X(j);
+        }
+    }
+    
+    
+    
     // Print the solution
     for (unsigned i=0; i < X.n_rows; i++){
-        std::cout << i << "\t" << X(i,0) << std::endl;
+        std::cout << "X = " << i << "\t" << X(i,0) << std::endl;
+    }
+    
+    for (unsigned i=0; i < brhs_check.size(); i++){
+        std::cout << "RHS check = " << i << "\t" << brhs_check[i] << std::endl;
     }
     
     // Print the circulation
@@ -570,7 +573,7 @@ void DVMBase::solvevortexsheet()
     std::cout << std::endl;
     
     throw std::string("Stop here");
-     */
+    */
     
 }
 
@@ -730,7 +733,7 @@ void DVMBase::diffrw()
 
 void DVMBase::diffuse_vs_rw()
 {
-    double tmpx, tmpz, tmpc, tmpsigma;
+    double x, z, circ, sigma;
 
     double R1, R2, rrw, thetarw ;
     
@@ -749,23 +752,23 @@ void DVMBase::diffuse_vs_rw()
         thetarw = 2.0*m_pi*R2;
         
         // The position of the released vortex blox after diffusion using random walk
-        tmpx = m_vortsheet.xc[i]+rrw*cos(thetarw);
-        tmpz = m_vortsheet.zc[i]+rrw*sin(thetarw);
+        x = m_vortsheet.xc[i] + rrw*cos(thetarw);
+        z = m_vortsheet.zc[i] + rrw*sin(thetarw);
         
-        // Obtain the circulation - this is UNCLEAR
+        // Obtain the circulation (see Morgenthal p. 36)
         if(i==m_vortsheet.size()-1){
-            tmpc=0.5*(m_vortsheet.gamma[m_vortsheet.size()-1] + m_vortsheet.gamma[0])*m_vortsheet.ds[m_vortsheet.size()-1]; // UNCLEAR
+            circ = 0.5*(m_vortsheet.gamma[i]*m_vortsheet.ds[i] + m_vortsheet.gamma[0]*m_vortsheet.ds[0]);
         }else{ 
-            tmpc=0.5*(m_vortsheet.gamma[i]+m_vortsheet.gamma[i+1])*m_vortsheet.ds[i]-m_Gamma_abs[i]; // UNCLEAR
+            circ = 0.5*(m_vortsheet.gamma[i]*m_vortsheet.ds[i] + m_vortsheet.gamma[i+1]*m_vortsheet.ds[i+1]);
         }
-        tmpsigma=std::pow(m_vortsheet.ds[i],0.625); // put this 0.625 into the XML script
+        sigma = std::pow(m_vortsheet.ds[i],m_sigma_cutoff);
         
         //Add the released vortex
         m_vortex.ID.push_back(m_vortex.size()+1);
-        m_vortex.x.push_back(tmpx);
-        m_vortex.z.push_back(tmpz);
-        m_vortex.circ.push_back(tmpc);
-        m_vortex.sigma.push_back(tmpsigma);
+        m_vortex.x.push_back(x);
+        m_vortex.z.push_back(z);
+        m_vortex.circ.push_back(circ);
+        m_vortex.sigma.push_back(sigma);
         
         // Why are these initially zero???
         m_vortex.u.push_back(0);
