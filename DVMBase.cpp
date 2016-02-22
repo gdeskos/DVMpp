@@ -268,10 +268,10 @@ void DVMBase::compute_influence_matrix()
     
     for(unsigned i=0; i<Nl; i++){
         
-        m_infM[i][0] =  m_rpi2 * (p[i][0] + q[i][Nl-1]);
+        m_infM[i][0] =  -m_rpi2 * (p[i][0] + q[i][Nl-1]);
         
         for(unsigned j=1; j<Nl; j++){
-            m_infM[i][j] = m_rpi2 * ( p[i][j] + q[i][j-1] );
+            m_infM[i][j] = -m_rpi2 * ( p[i][j] + q[i][j-1] );
         }
     }
     
