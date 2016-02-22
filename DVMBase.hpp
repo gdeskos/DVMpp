@@ -76,7 +76,6 @@ public:
      std::ofstream  dev_dvm, dev_Num, dev_gamma, dev_loads, dev_probe;
      //std::vector<double> xi_rw, eta_rw; // Why were these here???
      std::vector<double> uvs, wvs, uI, wI;
-     std::vector<double> m_gamma_prev;
      //std::vector<double> m_Gamma_abs;
      double m_dt, m_nu, m_Ux, m_Uz, m_n, m_np;
      double m_kernel_threshold, m_sigma_cutoff;
@@ -94,7 +93,7 @@ public:
      double m_pi,m_rpi2;
 
      // Loads related variables
-     double m_CD, m_rho;
+     double m_fx, m_fz, m_rho;
 };
 
 

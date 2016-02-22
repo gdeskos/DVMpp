@@ -67,9 +67,11 @@ try{
         
             // Inviscid Substep
             dvm.solvevortexsheet();
+           
+            dvm.compute_loads();
+           
             dvm.save_vort();
-  
-            //bl.compute_loads();
+        
             
             dvm.convect(1); // first order second order scheme
             dvm.diffrw();

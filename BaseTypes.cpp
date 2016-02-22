@@ -72,6 +72,7 @@ VortexSheet::VortexSheet()
 void VortexSheet::resize(unsigned size)
 { 
 	gamma.resize(size);
+    gamma_prev.resize(size);
     x.resize(size);
     z.resize(size);
     xc.resize(size); 
@@ -86,7 +87,7 @@ void VortexSheet::resize(unsigned size)
 
 unsigned VortexSheet::size()
 { 
-	if ((gamma.size() != xc.size())&&(gamma.size()!=zc.size())&&(gamma.size()!=ds.size())&&(gamma.size()!=theta.size())&&(gamma.size()!=enx.size()) &&(gamma.size()!=enz.size())&&(gamma.size()!=etx.size())&& (gamma.size()!=etz.size())) 
+	if ((gamma.size() != xc.size()) && (gamma_prev.size() != xc.size()) &&(gamma.size()!=zc.size())&&(gamma.size()!=ds.size())&&(gamma.size()!=theta.size())&&(gamma.size()!=enx.size()) &&(gamma.size()!=enz.size())&&(gamma.size()!=etx.size())&& (gamma.size()!=etz.size()))
     { throw std::string("Size mismatch in VortexSheet");} 
 	return gamma.size();
 }
