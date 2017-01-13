@@ -1,7 +1,4 @@
-#include "BaseTypes.hpp"
-
-
-//-----------------Vortex Sheet------------------//
+#include "VortexSheet.hpp"
 
 VortexSheet::VortexSheet()
 {
@@ -58,33 +55,5 @@ void VortexSheet::print_gamma()
 {
 	for (unsigned i = 0; i < size(); i++) {
 		std::cout << gamma[i] << std::endl;
-	}
-}
-
-// ---------------  Body ---------------- //
-
-Body::Body()
-{
-}
-
-void Body::resize(unsigned size)
-{
-	x.resize(size);
-	z.resize(size);
-}
-
-unsigned Body::size()
-{
-	if (x.size() != z.size()) {
-		throw std::string("Size mismatch in VortexBlobs");
-	}
-	return x.size();
-}
-
-void Body::print_location()
-{
-	for (unsigned i = 0; i < size(); i++) {
-		std::cout << " Body coor (x,z) = (" << x[i] << "," << z[i] << ")"
-		          << std::endl;
 	}
 }

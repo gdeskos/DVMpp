@@ -3,6 +3,8 @@
 
 #include "BaseTypes.hpp"
 #include "VortexBlobs.hpp"
+#include "VortexSheet.hpp"
+#include "Body.hpp"
 #include "pugiconfig.hpp"
 #include "pugixml.hpp"
 #include <algorithm>

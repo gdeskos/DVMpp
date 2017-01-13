@@ -1,4 +1,5 @@
-set(DVM_SOURCE_FILES BaseTypes.cpp DVMBase.cpp main.cpp VortexBlobs.cpp pugixml.cpp)
+set(DVM_SOURCE_FILES DVMBase.cpp main.cpp VortexBlobs.cpp
+	VortexSheet.cpp Body pugixml.cpp)
 
 add_executable(DVM++ ${DVM_SOURCE_FILES})
 
