@@ -11,142 +11,44 @@ DVMBase::DVMBase()
 	m_rpi2 = 1.0 / (2.0 * m_pi);
 }
 
-void DVMBase::init(pugi::xml_document &xml_doc)
+void DVMBase::init(XmlHandler &xml, std::string timestamp)
 {
-	std::string in_dir = xml_doc.child("IC2DDVM")
-	                         .child("io")
-	                         .child("input_dir")
-	                         .attribute("string")
-	                         .value();
-	std::string out_dir = xml_doc.child("IC2DDVM")
-	                          .child("io")
-	                          .child("output_dir")
-	                          .attribute("string")
-	                          .value();
-	std::string domain_file = xml_doc.child("IC2DDVM")
-	                              .child("io")
-	                              .child("domain_file")
-	                              .attribute("string")
-	                              .value();
+	m_timestamp = timestamp;
 
-	double rho = atof(xml_doc.child("IC2DDVM")
-	                      .child("constants")
-	                      .child("density")
-	                      .attribute("val")
-	                      .value());
-	if (rho <= 0) {
-		throw std::string(
-		    "<IC2DDVM><constants><density> must be larger than zero");
-	}
+	// Some helpers so we can do less typing
+	auto getVal = [&xml](const char *l, const char *p) {
+		return xml.getValueAttribute(l, p);
+	};
 
-	double nu = atof(xml_doc.child("IC2DDVM")
-	                     .child("constants")
-	                     .child("nu")
-	                     .attribute("val")
-	                     .value());
-	if (nu <= 0) {
-		throw std::string("<IC2DDVM><constants><nu> must be larger than zero");
-	}
+	auto getStr = [&xml](const char *l, const char *p) {
+		return xml.getStringAttribute(l, p);
+	};
 
-	double max_gamma = atof(xml_doc.child("IC2DDVM")
-	                            .child("constants")
-	                            .child("max_gamma")
-	                            .attribute("val")
-	                            .value());
-	if (max_gamma <= 0) {
-		throw std::string(
-		    "<IC2DDVM><constants><max_gamma> must be larger than zero");
-	}
+	// Get all the various inputs. Valid inputs are checked by the xml handler
+	m_in_dir = getStr("io", "input_dir");
+	m_out_dir = getStr("io", "output_dir");
+	m_domain_file = getStr("io", "domain_file");
 
-	double kernel = atof(xml_doc.child("IC2DDVM")
-	                         .child("constants")
-	                         .child("kernel_threshold")
-	                         .attribute("val")
-	                         .value());
-	if (kernel <= 0) {
-		throw std::string(
-		    "<IC2DDVM><constants><kernel_threshold> must be larger than zero");
-	}
+	m_rho = getVal("constants", "density");
+	m_nu = getVal("constants", "nu");
+	m_maxGamma = getVal("constants", "max_gamma");
+	m_kernel_threshold = getVal("constants", "kernel_threshold");
+	m_sigma_cutoff = getVal("constants", "sigma_cutoff");
 
-	double cutoff = atof(xml_doc.child("IC2DDVM")
-	                         .child("constants")
-	                         .child("sigma_cutoff")
-	                         .attribute("val")
-	                         .value());
-	if (cutoff <= 0) {
-		throw std::string(
-		    "<IC2DDVM><constants><sigma_cutoff> must be larger than zero");
-	}
-	if (cutoff >= 1) {
+	// Need to find a way in the xml handler to deal with this too
+	if (m_sigma_cutoff >= 1) {
 		throw std::string(
 		    "<IC2DDVM><constants><sigma_cutoff> must be less than one");
 	}
 
-	double dt = atof(xml_doc.child("IC2DDVM")
-	                     .child("time")
-	                     .child("dt")
-	                     .attribute("val")
-	                     .value());
-	if (dt <= 0) {
-		throw std::string("<IC2DDVM><time><dt> must be larger than zero");
-	}
+	m_dt = getVal("time", "dt");
+	m_steps = getVal("time", "steps");
 
-	unsigned steps = atof(xml_doc.child("IC2DDVM")
-	                          .child("time")
-	                          .child("steps")
-	                          .attribute("val")
-	                          .value());
-	if (steps <= 0) {
-		throw std::string("<IC2DDVM><time><steps> must be larger than zero");
-	}
+	m_Ux = getVal("flow", "ux");
+	m_Uz = getVal("flow", "uz");
 
-	double ux = atof(xml_doc.child("IC2DDVM")
-	                     .child("flow")
-	                     .child("ux")
-	                     .attribute("val")
-	                     .value());
-	double uz = atof(xml_doc.child("IC2DDVM")
-	                     .child("flow")
-	                     .child("uz")
-	                     .attribute("val")
-	                     .value());
-
-	// Generalise this to arrays
-	unsigned probe_x = atof(xml_doc.child("IC2DDVM")
-	                            .child("probe")
-	                            .child("x")
-	                            .attribute("val")
-	                            .value());
-	unsigned probe_z = atof(xml_doc.child("IC2DDVM")
-	                            .child("probe")
-	                            .child("z")
-	                            .attribute("val")
-	                            .value());
-
-	// Directories and file names
-	m_in_dir = in_dir;
-	m_out_dir = out_dir;
-	m_domain_file = domain_file;
-
-	// Parameters
-	m_maxGamma = max_gamma;
-	m_kernel_threshold = kernel;
-	m_sigma_cutoff = cutoff;
-
-	m_dt = dt;
-	m_rho = rho;
-	m_steps = steps;
-
-	m_nu = nu;
-	m_Ux = ux;
-	m_Uz = uz;
-
-	// Generalise this to arrays
-	m_probe.resize(1);
-
-	// Define probe point
-	m_probe.x[0] = probe_x;
-	m_probe.z[0] = probe_z;
+	m_probe.x = xml.getList("probe", "x");
+	m_probe.z = xml.getList("probe", "z");
 }
 
 void DVMBase::read_input_coord()
@@ -183,39 +85,8 @@ void DVMBase::read_input_coord()
 
 void DVMBase::init_outputs()
 {
-
-	// Init all io files
-	time_t rawtime;
-	struct tm *ptm;
-	time(&rawtime);
-	ptm = gmtime(&rawtime);
-
-	std::ostringstream os;
-	os << ptm->tm_year + 1900 << "_";
-	if (ptm->tm_mon + 1 < 10) {
-		os << "0";
-	}
-	os << ptm->tm_mon + 1 << "_";
-	if (ptm->tm_mday < 10) {
-		os << "0";
-	}
-	os << ptm->tm_mday << "_";
-	if (ptm->tm_hour + 1 < 10) {
-		os << "0";
-	}
-	os << ptm->tm_hour + 1 << "_";
-	if (ptm->tm_min < 10) {
-		os << "0";
-	}
-	os << ptm->tm_min << "_";
-	if (ptm->tm_sec < 10) {
-		os << "0";
-	}
-	os << ptm->tm_sec;
-
-	std::cout << "File timestamp is " << os.str() << std::endl;
-
-	dev_dvm.open((m_out_dir + os.str() + std::string("_vortex.dat")).c_str());
+	dev_dvm.open(
+	    (m_out_dir + m_timestamp + std::string("_vortex.dat")).c_str());
 	dev_dvm << m_vortex.size() << " # Number of Nodes" << std::endl;
 	dev_dvm << m_dt << " # Time Step" << std::endl;
 	dev_dvm << m_steps << " # Steps " << std::endl;
@@ -228,12 +99,13 @@ void DVMBase::init_outputs()
 	        << "circulation" << std::endl;
 
 	dev_Num.open(
-	    (m_out_dir + os.str() + std::string("_vortex_num.dat")).c_str());
+	    (m_out_dir + m_timestamp + std::string("_vortex_num.dat")).c_str());
 	dev_Num << "Time [s]"
 	        << " "
 	        << "Number of vortices" << std::endl;
 
-	dev_gamma.open((m_out_dir + os.str() + std::string("_gamma.dat")).c_str());
+	dev_gamma.open(
+	    (m_out_dir + m_timestamp + std::string("_gamma.dat")).c_str());
 	dev_gamma << m_vortsheet.size() << " # Number of collocation points"
 	          << std::endl;
 	dev_gamma << m_dt << " # Time Step" << std::endl;
@@ -242,13 +114,15 @@ void DVMBase::init_outputs()
 	          << " "
 	          << "Gamma - Vortex sheet strength" << std::endl;
 
-	dev_loads.open((m_out_dir + os.str() + std::string("_loads.dat")).c_str());
+	dev_loads.open(
+	    (m_out_dir + m_timestamp + std::string("_loads.dat")).c_str());
 	dev_loads << "Time [s]"
 	          << " "
 	          << "\tFx [N]"
 	          << "\tFz [N]" << std::endl;
 
-	dev_probe.open((m_out_dir + os.str() + std::string("_probe.dat")).c_str());
+	dev_probe.open(
+	    (m_out_dir + m_timestamp + std::string("_probe.dat")).c_str());
 	dev_probe << m_dt << " # Time Step" << std::endl;
 	dev_probe << m_steps << " # Steps " << std::endl;
 	dev_probe << "Time [s]"

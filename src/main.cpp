@@ -1,6 +1,7 @@
 // The main application file
 #include "BaseTypes.hpp"
 #include "DVMBase.hpp"
+#include "XmlHandler.hpp"
 #include "pugiconfig.hpp"
 #include "pugixml.hpp"
 #include <fstream>
@@ -21,19 +22,10 @@ int main(int argc, char *argv[])
 
 		std::string input_xml_file(argv[1]);
 
-		pugi::xml_document xml_doc;
-		pugi::xml_parse_result result =
-		    xml_doc.load_file(input_xml_file.c_str());
+		XmlHandler xml(input_xml_file);
 
 		std::string experiment_name, domain_type;
 		// FileNames file_names;
-
-		if (!result) {
-			std::ostringstream os;
-			os << "An error occured whilst reading the input XML file: "
-			   << result.description();
-			throw std::string(os.str());
-		}
 
 		std::cout
 		    << "=============================================================="
@@ -45,9 +37,42 @@ int main(int argc, char *argv[])
 
 		std::cout << "Successfully loaded XML input file" << std::endl;
 
+		// Deal with time - this is horrible!
+		time_t rawtime;
+		struct tm *ptm;
+		time(&rawtime);
+		ptm = gmtime(&rawtime);
+
+		std::ostringstream os;
+		os << ptm->tm_year + 1900 << "_";
+		if (ptm->tm_mon + 1 < 10) {
+			os << "0";
+		}
+		os << ptm->tm_mon + 1 << "_";
+		if (ptm->tm_mday < 10) {
+			os << "0";
+		}
+		os << ptm->tm_mday << "_";
+		if (ptm->tm_hour + 1 < 10) {
+			os << "0";
+		}
+		os << ptm->tm_hour + 1 << "_";
+		if (ptm->tm_min < 10) {
+			os << "0";
+		}
+		os << ptm->tm_min << "_";
+		if (ptm->tm_sec < 10) {
+			os << "0";
+		}
+		os << ptm->tm_sec;
+
+		std::string stamp = os.str();
+
+		std::cout << "File timestamp is " << os.str() << std::endl;
+
 		DVMBase dvm;
 
-		dvm.init(xml_doc);
+		dvm.init(xml, stamp);
 		dvm.read_input_coord();
 		dvm.init_outputs();
 
@@ -104,6 +129,9 @@ int main(int argc, char *argv[])
 		// output the cpu time on screen
 		cpu_time = (clock() - start) / (double)CLOCKS_PER_SEC;
 		cout << "Used CPU time is : " << cpu_time << endl;
+
+		auto outdir = xml.getStringAttribute("io", "output_dir");
+		xml.save(outdir + stamp + "_xml_in.xml");
 
 	} catch (char *str) {
 		std::cout << "Exception thrown: " << str << std::endl;

@@ -2,9 +2,10 @@
 #define DVMBASE
 
 #include "BaseTypes.hpp"
+#include "Body.hpp"
 #include "VortexBlobs.hpp"
 #include "VortexSheet.hpp"
-#include "Body.hpp"
+#include "XmlHandler.hpp"
 #include "pugiconfig.hpp"
 #include "pugixml.hpp"
 #include <algorithm>
@@ -56,10 +57,13 @@ class DVMBase
 	/** @name Reading and writing */
 
 	///@{
+	XmlHandler m_xml;          ///< xml handler
 	std::string m_in_dir;      ///< input directory
 	std::string m_out_dir;     ///< output directory
 	std::string m_domain_file; ///< body geometry file
 	///@}
+
+	std::string m_timestamp;
 
 	// some constants
 	double m_pi;   ///< pi
@@ -78,7 +82,7 @@ class DVMBase
 	///@{
 
 	/// Initialise the object
-	void init(pugi::xml_document &);
+	void init(XmlHandler &xml, std::string timestamp);
 
 	/// Read the input geometry file
 	void read_input_coord();
@@ -197,7 +201,6 @@ class DVMBase
 	// double m_GammaDel,
 	// double m_St;
 	*/
-
 };
 
 #endif
