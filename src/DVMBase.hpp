@@ -2,6 +2,7 @@
 #define DVMBASE
 
 #include "BaseTypes.hpp"
+#include "VortexBlobs.hpp"
 #include "pugiconfig.hpp"
 #include "pugixml.hpp"
 #include <algorithm>

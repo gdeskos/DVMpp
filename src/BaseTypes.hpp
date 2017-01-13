@@ -10,32 +10,6 @@ typedef std::vector<double> Vector;
 typedef std::vector<Vector> Matrix;
 typedef std::vector<unsigned>::iterator IndexIt;
 
-class VortexBlobs
-{
-	public:
-	VortexBlobs();
-	void resize(unsigned size);
-	unsigned size();
-	void print_location();
-	void print_velocity();
-	void print_circulation();
-	void print_cutoff();
-	void print_vorticity();
-	void print_all();
-	double totalcirc();
-
-	public:
-	std::vector<unsigned> ID;  // Vortex blob ID
-	std::vector<double> x;     // x-coordinate
-	std::vector<double> z;     // z-coordinate
-	std::vector<double> circ;  // circulation
-	std::vector<double> sigma; // vortex cut-off
-	std::vector<double> u;     // local x-velocity
-	std::vector<double> w;     // local z-velocity
-	std::vector<double> uvs;
-	std::vector<double> wvs;
-	std::vector<double> omega; // Local vorticity
-};
 
 class VortexSheet
 {
