@@ -320,17 +320,14 @@ void DVMBase::compute_influence_matrix()
 
 	unsigned Nl = m_vortsheet.size();
 
-	m_infM.resize(Nl + 1, std::vector<double>(Nl));
+	m_infM.set_size(Nl + 1, Nl);
 
-	std::cout << "m_infM.size(1) " << m_infM.size() << std::endl;
-	std::cout << "m_infM.size(2) " << m_infM[0].size() << std::endl;
-
-	// throw std::string("Stop here");
+	std::cout << "m_infM.size " << m_infM.size() << std::endl;
 
 	double c1, c2, c3, c4, c5, c6, c7, c8, c9;
 	Matrix p, q;
-	p.resize(Nl, std::vector<double>(Nl));
-	q.resize(Nl, std::vector<double>(Nl));
+	p.set_size(Nl, Nl);
+	q.set_size(Nl, Nl);
 
 	for (unsigned i = 0; i < Nl; i++) {
 
@@ -340,8 +337,8 @@ void DVMBase::compute_influence_matrix()
 
 		for (unsigned j = 0; j < Nl; j++) {
 			if (i == j) {
-				p[i][j] = -1.0;
-				q[i][j] = 1.0;
+				p(i, j) = -1.0;
+				q(i, j) = 1.0;
 			} else {
 
 				double xj = m_body.x[j];
@@ -362,42 +359,31 @@ void DVMBase::compute_influence_matrix()
 				c9 = (xci - xj) * cos(thetai - 2.0 * thetaj)
 				     - (zci - zj) * sin(thetai - 2.0 * thetaj);
 
-				q[i][j] =
+				q(i, j) =
 				    c4 + 0.5 * c9 * c6 / dsj - ((c1 * c3 + c4 * c5) * c7) / dsj;
-				p[i][j] = 0.5 * c4 * c6 + c3 * c7 - q[i][j];
+				p(i, j) = 0.5 * c4 * c6 + c3 * c7 - q(i, j);
 			}
 		}
 	}
 
 	for (unsigned i = 0; i < Nl; i++) {
-
-		m_infM[i][0] = -m_rpi2 * (p[i][0] + q[i][Nl - 1]);
+		m_infM(i, 0) = -m_rpi2 * (p(i, 0) + q(i, Nl - 1));
 
 		for (unsigned j = 1; j < Nl; j++) {
-			m_infM[i][j] = -m_rpi2 * (p[i][j] + q[i][j - 1]);
+			m_infM(i, j) = -m_rpi2 * (p(i, j) + q(i, j - 1));
 		}
 	}
 
 	// Enforcing the total circulation
 	for (unsigned j = 0; j < Nl; j++) {
-		m_infM[Nl][j] = m_vortsheet.ds[j];
+		m_infM(Nl, j) = m_vortsheet.ds[j];
 	}
 
 	// Print the matrix
+	m_infM.print();
 
-	//===============================================
-	for (unsigned i = 0; i < m_infM.size(); i++) {
-		for (unsigned j = 0; j < m_infM[0].size(); j++) {
-			std::cout << std::setprecision(3) << m_infM[i][j] << '\t';
-		}
-		std::cout << "\n";
-	}
-	//==============================================
-
-	// throw std::string("Stop here");
-
-	std::cout << "Computed influence matrix of size " << m_infM.size() << ","
-	          << m_infM[0].size() << " after Kuette and Chow" << std::endl;
+	std::cout << "Computed influence matrix of size " << m_infM.size()
+	          << " after Kuette and Chow" << std::endl;
 }
 
 double DVMBase::get_time()
@@ -550,16 +536,14 @@ void DVMBase::solvevortexsheet()
 
 	unsigned Nl = m_vortsheet.size();
 
-	std::vector<double> brhs;
-	brhs.resize(Nl + 1);
+	Vector brhs(Nl + 1);
 
 	if (m_vortex.size() == 0) {
 
 		for (unsigned i = 0; i < Nl; i++) {
-			brhs[i] = (m_Ux * m_vortsheet.enx[i] + m_Uz * m_vortsheet.enz[i]);
+			brhs(i) = (m_Ux * m_vortsheet.enx[i] + m_Uz * m_vortsheet.enz[i]);
 		}
-		brhs[Nl] = -m_vortex.totalcirc();
-		;
+		brhs(Nl) = -m_vortex.totalcirc();
 
 	} else {
 		std::vector<double> u, w;
@@ -607,82 +591,14 @@ void DVMBase::solvevortexsheet()
 		brhs[Nl] = -m_vortex.totalcirc();
 	}
 
-	// Use Armadillo to solve the overdetermined system
-	arma::mat MM, B, X;
-
-	MM.zeros(m_infM.size(), m_infM[0].size());
-	B.zeros(brhs.size(), 1);
-
-	// Copy Files into Armadillo format
-	// for(unsigned i=0; i<m_n+1; i++){ //JS edit
-	for (unsigned i = 0; i < B.n_rows; i++) {
-		B(i, 0) = brhs[i];
-	}
-
-	for (unsigned i = 0; i < MM.n_rows; i++) {
-		for (unsigned j = 0; j < MM.n_cols; j++) {
-			MM(i, j) = m_infM[i][j];
-		}
-	}
-
 	// Solve system
-	X = arma::solve(MM.t() * MM, MM.t() * B);
+	Vector X = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
 
 	// Copy back to the vortexsheet - removed special treatment here
 	// Why was this included? gamma_0 simply solution of Matrix
 	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
-		m_vortsheet.gamma[i] = X(i, 0);
+		m_vortsheet.gamma[i] = X(i);
 	}
-
-	/*
-
-	// Print the RHS
-	for (unsigned i=0; i < B.n_rows; i++){
-	    std::cout << "RHS " << i << "\t" << B(i,0) << std::endl;
-	}
-	std::cout << std::endl;
-
-	// Print the matrix
-	//===============================================
-	for (unsigned i=0; i< MM.n_rows; i++){
-	    for(unsigned j=0; j< MM.n_cols; j++){
-	        std::cout<< std::setprecision(3) << MM(i,j)<<'\t';
-	    }
-	    std::cout << std::endl;
-	}
-	std::cout << std::endl;
-	//==============================================
-
-	// Test that the output is correct and satisfies Ax = b
-	std::vector<double> brhs_check;
-	brhs_check.resize(Nl+1);
-	for (unsigned i=0; i<Nl+1; i++){
-	    brhs_check[i] = 0;
-	    for (unsigned j=0; j<Nl; j++){
-	        brhs_check[i] += m_infM[i][j]*X(j);
-	    }
-	}
-
-
-
-	// Print the solution
-	for (unsigned i=0; i < X.n_rows; i++){
-	    std::cout << "X = " << i << "\t" << X(i,0) << std::endl;
-	}
-
-	for (unsigned i=0; i < brhs_check.size(); i++){
-	    std::cout << "RHS check = " << i << "\t" << brhs_check[i] << std::endl;
-	}
-
-	// Print the circulation
-	for (unsigned i=0; i < m_vortsheet.size(); i++){
-	    std::cout << "gamma = " << i << "\t" << m_vortsheet.gamma[i] <<
-	std::endl;
-	}
-	std::cout << std::endl;
-
-	throw std::string("Stop here");
-	*/
 }
 
 void DVMBase::vortexsheetbc()
@@ -690,10 +606,10 @@ void DVMBase::vortexsheetbc()
 	double c1, c2, c3, c4, c5, c6, c7, c8, c9;
 	Matrix px, py, qx, qy;
 
-	px.resize(m_vortex.size(), std::vector<double>(m_vortsheet.size()));
-	qx.resize(m_vortex.size(), std::vector<double>(m_vortsheet.size()));
-	py.resize(m_vortex.size(), std::vector<double>(m_vortsheet.size()));
-	qy.resize(m_vortex.size(), std::vector<double>(m_vortsheet.size()));
+	px.set_size(m_vortex.size(), m_vortsheet.size());
+	qx.set_size(m_vortex.size(), m_vortsheet.size());
+	py.set_size(m_vortex.size(), m_vortsheet.size());
+	qy.set_size(m_vortex.size(), m_vortsheet.size());
 
 // compute the coefficients
 #pragma omp parallel for
@@ -719,13 +635,13 @@ void DVMBase::vortexsheetbc()
 			c9 =
 			    (xi - xj) * cos(-2.0 * thetaj) - (zi - zj) * sin(-2.0 * thetaj);
 
-			qx[i][j] = -sin(thetaj) + 0.5 * c8 * c6 / dsj
+			qx(i, j) = -sin(thetaj) + 0.5 * c8 * c6 / dsj
 			           + (c1 * cos(thetaj) + c5 * sin(thetaj)) * c7 / dsj;
-			px[i][j] = -0.5 * c6 * sin(thetaj) - c7 * cos(thetaj) - qx[i][j];
+			px(i, j) = -0.5 * c6 * sin(thetaj) - c7 * cos(thetaj) - qx(i, j);
 
-			qy[i][j] = cos(thetaj) + 0.5 * c9 * c6 / dsj
+			qy(i, j) = cos(thetaj) + 0.5 * c9 * c6 / dsj
 			           + (c1 * sin(thetaj) - c5 * cos(thetaj)) * c7 / dsj;
-			py[i][j] = 0.5 * c6 * cos(thetaj) - c7 * sin(thetaj) - qy[i][j];
+			py(i, j) = 0.5 * c6 * cos(thetaj) - c7 * sin(thetaj) - qy(i, j);
 		}
 	}
 
@@ -740,15 +656,15 @@ void DVMBase::vortexsheetbc()
 
 		for (unsigned j = 0; j < m_vortsheet.size(); j++) {
 			if (j == last) {
-				m_vortex.uvs[i] += px[i][last] * m_vortsheet.gamma[last]
-				                   + qx[i][last] * m_vortsheet.gamma[0];
-				m_vortex.wvs[i] += py[i][last] * m_vortsheet.gamma[last]
-				                   + qy[i][last] * m_vortsheet.gamma[0];
+				m_vortex.uvs[i] += px(i, last) * m_vortsheet.gamma[last]
+				                   + qx(i, last) * m_vortsheet.gamma[0];
+				m_vortex.wvs[i] += py(i, last) * m_vortsheet.gamma[last]
+				                   + qy(i, last) * m_vortsheet.gamma[0];
 			} else {
-				m_vortex.uvs[i] += px[i][j] * m_vortsheet.gamma[j]
-				                   + qx[i][j] * m_vortsheet.gamma[j + 1];
-				m_vortex.wvs[i] += py[i][j] * m_vortsheet.gamma[j]
-				                   + qy[i][j] * m_vortsheet.gamma[j + 1];
+				m_vortex.uvs[i] += px(i, j) * m_vortsheet.gamma[j]
+				                   + qx(i, j) * m_vortsheet.gamma[j + 1];
+				m_vortex.wvs[i] += py(i, j) * m_vortsheet.gamma[j]
+				                   + qy(i, j) * m_vortsheet.gamma[j + 1];
 			}
 		}
 		m_vortex.uvs[i] *= m_rpi2;
@@ -1012,10 +928,10 @@ void DVMBase::probe_velocities()
 
 	double c1, c2, c3, c4, c5, c6, c7, c8, c9;
 	Matrix px, py, qx, qy;
-	px.resize(m_probe.size(), std::vector<double>(m_vortsheet.size()));
-	qx.resize(m_probe.size(), std::vector<double>(m_vortsheet.size()));
-	py.resize(m_probe.size(), std::vector<double>(m_vortsheet.size()));
-	qy.resize(m_probe.size(), std::vector<double>(m_vortsheet.size()));
+	px.set_size(m_probe.size(), m_vortsheet.size());
+	qx.set_size(m_probe.size(), m_vortsheet.size());
+	py.set_size(m_probe.size(), m_vortsheet.size());
+	qy.set_size(m_probe.size(), m_vortsheet.size());
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
 
@@ -1045,38 +961,38 @@ void DVMBase::probe_velocities()
 			     + (m_probe.z[i] - m_vortsheet.zc[j])
 			           * sin(-2.0 * m_vortsheet.theta[j]);
 
-			qx[i][j] = -sin(m_vortsheet.theta[j])
+			qx(i, j) = -sin(m_vortsheet.theta[j])
 			           + 0.5 * c8 * c6 / m_vortsheet.ds[j]
 			           + (c1 * cos(m_vortsheet.theta[j])
 			              + c5 * sin(m_vortsheet.theta[j]))
 			                 * c7 / m_vortsheet.ds[j];
-			px[i][j] = -0.5 * c6 * sin(m_vortsheet.theta[j])
-			           - c7 * cos(m_vortsheet.theta[j]) - qx[i][j];
+			px(i, j) = -0.5 * c6 * sin(m_vortsheet.theta[j])
+			           - c7 * cos(m_vortsheet.theta[j]) - qx(i, j);
 
-			qy[i][j] = cos(m_vortsheet.theta[j])
+			qy(i, j) = cos(m_vortsheet.theta[j])
 			           + 0.5 * c9 * c6 / m_vortsheet.ds[j]
 			           + (c1 * cos(m_vortsheet.theta[j])
 			              - c5 * sin(m_vortsheet.theta[j]))
 			                 * c7 / m_vortsheet.ds[j];
-			py[i][j] = -0.5 * c6 * cos(m_vortsheet.theta[j])
-			           - c7 * sin(m_vortsheet.theta[j]) - qy[i][j];
+			py(i, j) = -0.5 * c6 * cos(m_vortsheet.theta[j])
+			           - c7 * sin(m_vortsheet.theta[j]) - qy(i, j);
 
 			if (j == m_vortsheet.size() - 1) {
 
 				m_probe.uvs[i] =
-				    (px[i][m_vortsheet.size() - 1]
+				    (px(i, m_vortsheet.size() - 1)
 				         * m_vortsheet.gamma[m_vortsheet.size() - 1]
-				     + qx[i][m_vortsheet.size() - 1] * m_vortsheet.gamma[0]);
+				     + qx(i, m_vortsheet.size() - 1) * m_vortsheet.gamma[0]);
 				m_probe.wvs[i] =
-				    (py[i][m_vortsheet.size() - 1]
+				    (py(i, m_vortsheet.size() - 1)
 				         * m_vortsheet.gamma[m_vortsheet.size() - 1]
-				     - qy[i][m_vortsheet.size() - 1] * m_vortsheet.gamma[0]);
+				     - qy(i, m_vortsheet.size() - 1) * m_vortsheet.gamma[0]);
 
 			} else {
-				m_probe.uvs[i] = (px[i][j] * m_vortsheet.gamma[j]
-				                  + qx[i][j] * m_vortsheet.gamma[j + 1]);
-				m_probe.wvs[i] = (py[i][j] * m_vortsheet.gamma[j]
-				                  + qy[i][j] * m_vortsheet.gamma[j + 1]);
+				m_probe.uvs[i] = (px(i, j) * m_vortsheet.gamma[j]
+				                  + qx(i, j) * m_vortsheet.gamma[j + 1]);
+				m_probe.wvs[i] = (py(i, j) * m_vortsheet.gamma[j]
+				                  + qy(i, j) * m_vortsheet.gamma[j + 1]);
 			}
 		}
 	}

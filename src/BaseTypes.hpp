@@ -1,13 +1,9 @@
 #ifndef BASETYPES
 #define BASETYPES
 
-#include <cstdlib>
-#include <cstring>
-#include <iostream>
-#include <vector>
+#include <armadillo>
 
-typedef std::vector<double> Vector;
-typedef std::vector<Vector> Matrix;
-typedef std::vector<unsigned>::iterator IndexIt;
+using Matrix = arma::mat;
+using Vector = arma::vec;
 
 #endif
