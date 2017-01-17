@@ -43,7 +43,6 @@ class DVMBase
 	double m_nu; ///< Kinematic viscosity
 	double m_Ux; ///< Free stream velocity in x
 	double m_Uz; ///< Free stream velocity in ym_n, m_np;
-
 	double m_n; ///< Number of body points
 
 	double m_kernel_threshold; ///< Kernel threshold
@@ -76,7 +75,7 @@ class DVMBase
 
 	private:
 	public:
-	DVMBase();
+	DVMBase(XmlHandler &xml);
 
 	/** @name General Initialisation */
 	///@{
@@ -156,9 +155,6 @@ class DVMBase
 	private:
 	/// Compute the vortex sheet boundary condition
 	void vortexsheetbc();
-
-	/// Biot-Savart relationship
-	void biotsavart();
 
 	/// Mirror a particle from one side of the boundary to the other
 	std::vector<double> mirror(double x_init,

@@ -70,7 +70,7 @@ int main(int argc, char *argv[])
 
 		std::cout << "File timestamp is " << os.str() << std::endl;
 
-		DVMBase dvm;
+		DVMBase dvm(xml);
 
 		dvm.init(xml, stamp);
 		dvm.read_input_coord();

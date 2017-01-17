@@ -4,7 +4,7 @@
 #include <iomanip>
 #include <time.h>
 
-DVMBase::DVMBase()
+DVMBase::DVMBase(XmlHandler &xml) : m_vortex(xml)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_step = 0;
@@ -47,8 +47,8 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 	m_Ux = getVal("flow", "ux");
 	m_Uz = getVal("flow", "uz");
 
-	m_probe.x = xml.getList("probe", "x");
-	m_probe.z = xml.getList("probe", "z");
+	m_probe.m_x = xml.getList("probe", "x");
+	m_probe.m_z = xml.getList("probe", "z");
 }
 
 void DVMBase::read_input_coord()
@@ -289,8 +289,8 @@ void DVMBase::increment_step()
 void DVMBase::write_outputs()
 {
 	for (unsigned i = 0; i < m_vortex.size(); i++) {
-		dev_dvm << m_time << " " << m_vortex.x(i) << " " << m_vortex.z(i) << " "
-		        << m_vortex.circ(i) << std::endl;
+		dev_dvm << m_time << " " << m_vortex.m_x(i) << " " << m_vortex.m_z(i) << " "
+		        << m_vortex.m_circ(i) << std::endl;
 	}
 
 	dev_Num << m_step << " " << m_vortex.size() << std::endl;
@@ -304,45 +304,8 @@ void DVMBase::write_outputs()
 	dev_loads << m_step << " " << m_fx << "\t" << m_fz << std::endl;
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
-		dev_probe << m_time << " " << m_probe.u[i] << " " << m_probe.w[i]
+		dev_probe << m_time << " " << m_probe.m_u[i] << " " << m_probe.m_w[i]
 		          << std::endl;
-	}
-}
-
-void DVMBase::biotsavart()
-{
-
-#pragma omp parallel for
-	for (unsigned i = 0; i < m_vortex.size(); i++) {
-
-		double dx_ij, dz_ij, dK_ij, dr_ij2, threshold, rsigmasqr;
-
-		m_vortex.u(i) = 0.0;
-		m_vortex.w(i) = 0.0;
-
-		for (unsigned j = 0; j < m_vortex.size(); j++) {
-
-			if (i != j) {
-				dx_ij = m_vortex.x(i) - m_vortex.x(j);
-				dz_ij = m_vortex.z(i) - m_vortex.z(j);
-				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2.0);
-
-				threshold =
-				    m_kernel_threshold * std::pow(m_vortex.sigma(j), 2.0);
-				rsigmasqr = 1.0 / std::pow(m_vortex.sigma(j), 2.0);
-
-				if (dr_ij2 < threshold) {
-					dK_ij = (1.0 - std::exp(-dr_ij2 * rsigmasqr)) / dr_ij2;
-				} else {
-					dK_ij = 1.0 / dr_ij2;
-				}
-
-				m_vortex.u(i) -= dK_ij * dz_ij * m_vortex.circ(j);
-				m_vortex.w(i) += dK_ij * dx_ij * m_vortex.circ(j);
-			}
-		}
-		m_vortex.u(i) *= m_rpi2;
-		m_vortex.w(i) *= m_rpi2;
 	}
 }
 
@@ -350,12 +313,12 @@ void DVMBase::convect(unsigned order)
 {
 	// Convects according to an order of magnitude
 	if (order == 1) {
-		biotsavart();
+		m_vortex.biotsavart();
 		vortexsheetbc();
 
 		for (unsigned i = 0; i < m_vortex.size(); i++) {
-			m_vortex.x[i] += (m_vortex.u[i] + m_vortex.uvs[i] + m_Ux) * m_dt;
-			m_vortex.z[i] += (m_vortex.w[i] + m_vortex.wvs[i] + m_Uz) * m_dt;
+			m_vortex.m_x[i] += (m_vortex.m_u[i] + m_vortex.m_uvs[i] + m_Ux) * m_dt;
+			m_vortex.m_z[i] += (m_vortex.m_w[i] + m_vortex.m_wvs[i] + m_Uz) * m_dt;
 
 			// std::cout << "Vortex [" << i << "] x = " << m_vortex.x[i] << " z
 			// = " << m_vortex.z[i] << std::endl;
@@ -434,12 +397,12 @@ void DVMBase::solvevortexsheet()
 
 			for (unsigned j = 0; j < m_vortex.size(); j++) {
 
-				dx_ij = m_vortsheet.xc[i] - m_vortex.x[j];
-				dz_ij = m_vortsheet.zc[i] - m_vortex.z[j];
+				dx_ij = m_vortsheet.xc[i] - m_vortex.m_x[j];
+				dz_ij = m_vortsheet.zc[i] - m_vortex.m_z[j];
 				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
-				threshold = m_kernel_threshold * std::pow(m_vortex.sigma[j], 2);
-				rsigmasqr = 1.0 / std::pow(m_vortex.sigma[j], 2);
+				threshold = m_kernel_threshold * std::pow(m_vortex.m_sigma[j], 2);
+				rsigmasqr = 1.0 / std::pow(m_vortex.m_sigma[j], 2);
 
 				if (dr_ij2 < threshold) {
 					dK_ij = (1.0 - std::exp(-dr_ij2 * rsigmasqr)) / dr_ij2;
@@ -447,8 +410,8 @@ void DVMBase::solvevortexsheet()
 					dK_ij = 1.0 / dr_ij2;
 				}
 
-				u[i] -= dK_ij * dz_ij * m_vortex.circ[j];
-				w[i] += dK_ij * dx_ij * m_vortex.circ[j];
+				u[i] -= dK_ij * dz_ij * m_vortex.m_circ[j];
+				w[i] += dK_ij * dx_ij * m_vortex.m_circ[j];
 			}
 		}
 
@@ -489,8 +452,8 @@ void DVMBase::vortexsheetbc()
 #pragma omp parallel for
 	for (unsigned i = 0; i < m_vortex.size(); i++) {
 
-		double xi = m_vortex.x[i];
-		double zi = m_vortex.z[i];
+		double xi = m_vortex.m_x[i];
+		double zi = m_vortex.m_z[i];
 
 		for (unsigned j = 0; j < m_vortsheet.size(); j++) {
 
@@ -525,24 +488,24 @@ void DVMBase::vortexsheetbc()
 #pragma omp parallel for
 	for (unsigned i = 0; i < m_vortex.size(); i++) {
 
-		m_vortex.uvs[i] = 0.0;
-		m_vortex.wvs[i] = 0.0;
+		m_vortex.m_uvs[i] = 0.0;
+		m_vortex.m_wvs[i] = 0.0;
 
 		for (unsigned j = 0; j < m_vortsheet.size(); j++) {
 			if (j == last) {
-				m_vortex.uvs[i] += px(i, last) * m_vortsheet.gamma[last]
+				m_vortex.m_uvs[i] += px(i, last) * m_vortsheet.gamma[last]
 				                   + qx(i, last) * m_vortsheet.gamma[0];
-				m_vortex.wvs[i] += py(i, last) * m_vortsheet.gamma[last]
+				m_vortex.m_wvs[i] += py(i, last) * m_vortsheet.gamma[last]
 				                   + qy(i, last) * m_vortsheet.gamma[0];
 			} else {
-				m_vortex.uvs[i] += px(i, j) * m_vortsheet.gamma[j]
+				m_vortex.m_uvs[i] += px(i, j) * m_vortsheet.gamma[j]
 				                   + qx(i, j) * m_vortsheet.gamma[j + 1];
-				m_vortex.wvs[i] += py(i, j) * m_vortsheet.gamma[j]
+				m_vortex.m_wvs[i] += py(i, j) * m_vortsheet.gamma[j]
 				                   + qy(i, j) * m_vortsheet.gamma[j + 1];
 			}
 		}
-		m_vortex.uvs[i] *= m_rpi2;
-		m_vortex.wvs[i] *= m_rpi2;
+		m_vortex.m_uvs[i] *= m_rpi2;
+		m_vortex.m_wvs[i] *= m_rpi2;
 	}
 }
 
@@ -563,8 +526,8 @@ void DVMBase::diffrw()
 		rrw = std::sqrt(4.0 * m_nu * m_dt * std::log(1.0 / R1));
 		thetarw = 2.0 * m_pi * R2;
 
-		m_vortex.x[i] += rrw * cos(thetarw);
-		m_vortex.z[i] += rrw * sin(thetarw);
+		m_vortex.m_x[i] += rrw * cos(thetarw);
+		m_vortex.m_z[i] += rrw * sin(thetarw);
 	}
 }
 
@@ -606,24 +569,24 @@ void DVMBase::diffuse_vs_rw()
 		sigma = std::pow(m_vortsheet.ds[i], m_sigma_cutoff);
 
 		// Add the released vortex
-		m_vortex.ID.push_back(m_vortex.ID.size() + 1);
+		m_vortex.m_ID.push_back(m_vortex.m_ID.size() + 1);
 		x_vec(i) = x;
 		z_vec(i) = z;
 		circ_vec(i) = circ;
 		sigma_vec(i) = sigma;
 	}
 
-	m_vortex.x.insert_rows(m_vortex.x.n_elem, x_vec);
-	m_vortex.z.insert_rows(m_vortex.z.n_elem, z_vec);
-	m_vortex.circ.insert_rows(m_vortex.circ.n_elem, circ_vec);
-	m_vortex.sigma.insert_rows(m_vortex.sigma.n_elem, sigma_vec);
+	m_vortex.m_x.insert_rows(m_vortex.m_x.n_elem, x_vec);
+	m_vortex.m_z.insert_rows(m_vortex.m_z.n_elem, z_vec);
+	m_vortex.m_circ.insert_rows(m_vortex.m_circ.n_elem, circ_vec);
+	m_vortex.m_sigma.insert_rows(m_vortex.m_sigma.n_elem, sigma_vec);
 
 	// Why are these initially zero???
-	m_vortex.u.insert_rows(m_vortex.u.n_elem, m_vortsheet.size(), true);
-	m_vortex.w.insert_rows(m_vortex.w.n_elem, m_vortsheet.size(), true);
-	m_vortex.uvs.insert_rows(m_vortex.uvs.n_elem, m_vortsheet.size(), true);
-	m_vortex.wvs.insert_rows(m_vortex.wvs.n_elem, m_vortsheet.size(), true);
-	m_vortex.omega.insert_rows(m_vortex.omega.n_elem, m_vortsheet.size(), true);
+	m_vortex.m_u.insert_rows(m_vortex.m_u.n_elem, m_vortsheet.size(), true);
+	m_vortex.m_w.insert_rows(m_vortex.m_w.n_elem, m_vortsheet.size(), true);
+	m_vortex.m_uvs.insert_rows(m_vortex.m_uvs.n_elem, m_vortsheet.size(), true);
+	m_vortex.m_wvs.insert_rows(m_vortex.m_wvs.n_elem, m_vortsheet.size(), true);
+	m_vortex.m_omega.insert_rows(m_vortex.m_omega.n_elem, m_vortsheet.size(), true);
 }
 
 void DVMBase::reflect()
@@ -644,14 +607,14 @@ void DVMBase::reflect()
 		min_dist[i] = 0;
 		closest_panel[i] = 0;
 
-		if (inside_body(m_vortex.x(i), m_vortex.z(i))) {
+		if (inside_body(m_vortex.m_x(i), m_vortex.m_z(i))) {
 
 			// Find which panel is closest to the vortex
 			min_prev = 10E6;
 			for (unsigned j = 0; j < m_vortsheet.size(); j++) {
 
-				dx = m_vortsheet.xc[j] - m_vortex.x(i);
-				dz = m_vortsheet.zc[j] - m_vortex.z(i);
+				dx = m_vortsheet.xc[j] - m_vortex.m_x(i);
+				dz = m_vortsheet.zc[j] - m_vortex.m_z(i);
 				dr = std::sqrt(std::pow(dx, 2.0) + std::pow(dz, 2.0));
 
 				if (dr < min_prev) {
@@ -661,8 +624,8 @@ void DVMBase::reflect()
 			}
 
 			// Find the mirror image vortex blob
-			x_init = m_vortex.x(i);
-			z_init = m_vortex.z(i);
+			x_init = m_vortex.m_x(i);
+			z_init = m_vortex.m_z(i);
 
 			x_0 = m_body.x[closest_panel[i]];
 			z_0 = m_body.z[closest_panel[i]];
@@ -674,9 +637,9 @@ void DVMBase::reflect()
 			// std::cout << "Mirrored vortex from " << m_vortex.x[i] << "," <<
 			// m_vortex.z[i];
 
-			m_vortex.x(i) = _mirror[0];
-			m_vortex.z(i) = _mirror[1];
-			m_vortex.circ(i) = m_vortex.circ(i); // This does not do anything
+			m_vortex.m_x(i) = _mirror[0];
+			m_vortex.m_z(i) = _mirror[1];
+			m_vortex.m_circ(i) = m_vortex.m_circ(i); // This does not do anything
 			                                     // ??? - should this be
 			                                     // different ???
 			// std::cout<<m_vortex.x[i]<<"\t"<<m_vortex.z[i]<<"\n";
@@ -775,22 +738,22 @@ void DVMBase::probe_velocities()
 	// Compute the velocity vector at the probe points
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
-		m_probe.u[i] = 0.0;
-		m_probe.w[i] = 0.0;
+		m_probe.m_u[i] = 0.0;
+		m_probe.m_w[i] = 0.0;
 	}
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
-		x_i = m_probe.x[i];
-		z_i = m_probe.z[i];
+		x_i = m_probe.m_x[i];
+		z_i = m_probe.m_z[i];
 		u_i = 0.0;
 		w_i = 0.0;
 		for (unsigned j = 1; j < m_vortex.size(); j++) {
-			dx_ij = x_i - m_vortex.x(j);
-			dz_ij = z_i - m_vortex.z(j);
+			dx_ij = x_i - m_vortex.m_x(j);
+			dz_ij = z_i - m_vortex.m_z(j);
 			dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
-			threshold = m_kernel_threshold * std::pow(m_vortex.sigma(j), 2);
-			rsigmasqr = 1.0 / std::pow(m_vortex.sigma(j), 2);
+			threshold = m_kernel_threshold * std::pow(m_vortex.m_sigma(j), 2);
+			rsigmasqr = 1.0 / std::pow(m_vortex.m_sigma(j), 2);
 
 			if (dr_ij2 < threshold) {
 				dK_ij = (1.0 - std::exp(-dr_ij2 * rsigmasqr)) / dr_ij2;
@@ -800,10 +763,10 @@ void DVMBase::probe_velocities()
 
 			xkernel = dK_ij * dz_ij;
 			zkernel = dK_ij * dx_ij;
-			u_i = -xkernel * m_vortex.circ(j);
-			w_i = +zkernel * m_vortex.circ(j);
-			m_probe.u[i] = m_probe.u[i] + u_i;
-			m_probe.w[i] = m_probe.w[i] + w_i;
+			u_i = -xkernel * m_vortex.m_circ(j);
+			w_i = +zkernel * m_vortex.m_circ(j);
+			m_probe.m_u[i] = m_probe.m_u[i] + u_i;
+			m_probe.m_w[i] = m_probe.m_w[i] + w_i;
 		}
 	}
 
@@ -816,30 +779,30 @@ void DVMBase::probe_velocities()
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
 
-		m_probe.uvs[i] = 0.0;
-		m_probe.wvs[i] = 0.0;
+		m_probe.m_uvs[i] = 0.0;
+		m_probe.m_wvs[i] = 0.0;
 	}
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
 		for (unsigned j = 1; j < m_vortsheet.size(); j++) {
-			c1 = -(m_probe.x[i] - m_vortsheet.xc[j]) * cos(m_vortsheet.theta[j])
-			     - (m_probe.z[i] - m_vortsheet.zc[j])
+			c1 = -(m_probe.m_x[i] - m_vortsheet.xc[j]) * cos(m_vortsheet.theta[j])
+			     - (m_probe.m_z[i] - m_vortsheet.zc[j])
 			           * sin(m_vortsheet.theta[j]);
-			c2 = std::pow((m_probe.x[i] - m_vortsheet.xc[j]), 2)
-			     + std::pow((m_probe.z[i] - m_vortsheet.zc[j]), 2);
-			c5 = (m_probe.x[i] - m_vortsheet.xc[j]) * sin(m_vortsheet.theta[j])
-			     - (m_probe.z[i] - m_vortsheet.zc[j])
+			c2 = std::pow((m_probe.m_x[i] - m_vortsheet.xc[j]), 2)
+			     + std::pow((m_probe.m_z[i] - m_vortsheet.zc[j]), 2);
+			c5 = (m_probe.m_x[i] - m_vortsheet.xc[j]) * sin(m_vortsheet.theta[j])
+			     - (m_probe.m_z[i] - m_vortsheet.zc[j])
 			           * cos(m_vortsheet.theta[j]);
 			c6 = log(1.0
 			         + m_vortsheet.ds[j] * ((m_vortsheet.ds[j] + 2 * c1) / c2));
 			c7 = atan2((c5 * m_vortsheet.ds[j]), (c2 + c1 * m_vortsheet.ds[j]));
-			c8 = (m_probe.x[i] - m_vortsheet.xc[j])
+			c8 = (m_probe.m_x[i] - m_vortsheet.xc[j])
 			         * sin(-2.0 * m_vortsheet.theta[j])
-			     + (m_probe.z[i] - m_vortsheet.zc[j])
+			     + (m_probe.m_z[i] - m_vortsheet.zc[j])
 			           * cos(-2.0 * m_vortsheet.theta[j]);
-			c9 = (m_probe.x[i] - m_vortsheet.xc[j])
+			c9 = (m_probe.m_x[i] - m_vortsheet.xc[j])
 			         * cos(-2.0 * m_vortsheet.theta[j])
-			     + (m_probe.z[i] - m_vortsheet.zc[j])
+			     + (m_probe.m_z[i] - m_vortsheet.zc[j])
 			           * sin(-2.0 * m_vortsheet.theta[j]);
 
 			qx(i, j) = -sin(m_vortsheet.theta[j])
@@ -860,26 +823,26 @@ void DVMBase::probe_velocities()
 
 			if (j == m_vortsheet.size() - 1) {
 
-				m_probe.uvs[i] =
+				m_probe.m_uvs[i] =
 				    (px(i, m_vortsheet.size() - 1)
 				         * m_vortsheet.gamma[m_vortsheet.size() - 1]
 				     + qx(i, m_vortsheet.size() - 1) * m_vortsheet.gamma[0]);
-				m_probe.wvs[i] =
+				m_probe.m_wvs[i] =
 				    (py(i, m_vortsheet.size() - 1)
 				         * m_vortsheet.gamma[m_vortsheet.size() - 1]
 				     - qy(i, m_vortsheet.size() - 1) * m_vortsheet.gamma[0]);
 
 			} else {
-				m_probe.uvs[i] = (px(i, j) * m_vortsheet.gamma[j]
+				m_probe.m_uvs[i] = (px(i, j) * m_vortsheet.gamma[j]
 				                  + qx(i, j) * m_vortsheet.gamma[j + 1]);
-				m_probe.wvs[i] = (py(i, j) * m_vortsheet.gamma[j]
+				m_probe.m_wvs[i] = (py(i, j) * m_vortsheet.gamma[j]
 				                  + qy(i, j) * m_vortsheet.gamma[j + 1]);
 			}
 		}
 	}
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
-		m_probe.u[i] = rpi2 * m_probe.u[i] + m_probe.uvs[i] + m_Ux;
-		m_probe.w[i] = rpi2 * m_probe.w[i] + m_probe.wvs[i] + m_Uz;
+		m_probe.m_u[i] = rpi2 * m_probe.m_u[i] + m_probe.m_uvs[i] + m_Ux;
+		m_probe.m_w[i] = rpi2 * m_probe.m_w[i] + m_probe.m_wvs[i] + m_Uz;
 	}
 }
