@@ -10,24 +10,20 @@ VortexBlobs::VortexBlobs()
 void VortexBlobs::resize(unsigned size)
 {
 	ID.resize(size);
-	x.resize(size);
-	z.resize(size);
-	circ.resize(size);
-	sigma.resize(size);
-	u.resize(size);
-	w.resize(size);
-	uvs.resize(size);
-	wvs.resize(size);
-	omega.resize(size);
+	x.set_size(size);
+	z.set_size(size);
+	circ.set_size(size);
+	sigma.set_size(size);
+	u.set_size(size);
+	w.set_size(size);
+	uvs.set_size(size);
+	wvs.set_size(size);
+	omega.set_size(size);
 }
 
 double VortexBlobs::totalcirc()
 {
-	double sum = 0.0;
-	for (unsigned i = 0; i < size(); i++) {
-		sum = sum + circ[i];
-	}
-	return sum;
+	return arma::sum(circ);
 }
 
 unsigned VortexBlobs::size()
@@ -49,20 +45,20 @@ void VortexBlobs::print_location()
 {
 	for (unsigned i = 0; i < size(); i++) {
 		std::cout << " The location of Vortex Blob " << ID[i] << " is (x,z) = ("
-		          << x[i] << "," << z[i] << ")" << std::endl;
+		          << x(i) << "," << z(i) << ")" << std::endl;
 	}
 }
 
 void VortexBlobs::print_velocity()
 {
 	for (unsigned i = 0; i < size(); i++) {
-		std::cout << "(u,w) = (" << u[i] << "," << w[i] << ")" << std::endl;
+		std::cout << "(u,w) = (" << u(i) << "," << w(i) << ")" << std::endl;
 	}
 }
 
 void VortexBlobs::print_circulation()
 {
 	for (unsigned i = 0; i < size(); i++) {
-		std::cout << " circ = " << circ[i] << std::endl;
+		std::cout << " circ = " << circ(i) << std::endl;
 	}
 }

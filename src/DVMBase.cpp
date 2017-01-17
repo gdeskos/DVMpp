@@ -289,8 +289,8 @@ void DVMBase::increment_step()
 void DVMBase::write_outputs()
 {
 	for (unsigned i = 0; i < m_vortex.size(); i++) {
-		dev_dvm << m_time << " " << m_vortex.x[i] << " " << m_vortex.z[i] << " "
-		        << m_vortex.circ[i] << std::endl;
+		dev_dvm << m_time << " " << m_vortex.x(i) << " " << m_vortex.z(i) << " "
+		        << m_vortex.circ(i) << std::endl;
 	}
 
 	dev_Num << m_step << " " << m_vortex.size() << std::endl;
@@ -317,19 +317,19 @@ void DVMBase::biotsavart()
 
 		double dx_ij, dz_ij, dK_ij, dr_ij2, threshold, rsigmasqr;
 
-		m_vortex.u[i] = 0.0;
-		m_vortex.w[i] = 0.0;
+		m_vortex.u(i) = 0.0;
+		m_vortex.w(i) = 0.0;
 
 		for (unsigned j = 0; j < m_vortex.size(); j++) {
 
 			if (i != j) {
-				dx_ij = m_vortex.x[i] - m_vortex.x[j];
-				dz_ij = m_vortex.z[i] - m_vortex.z[j];
+				dx_ij = m_vortex.x(i) - m_vortex.x(j);
+				dz_ij = m_vortex.z(i) - m_vortex.z(j);
 				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2.0);
 
 				threshold =
-				    m_kernel_threshold * std::pow(m_vortex.sigma[j], 2.0);
-				rsigmasqr = 1.0 / std::pow(m_vortex.sigma[j], 2.0);
+				    m_kernel_threshold * std::pow(m_vortex.sigma(j), 2.0);
+				rsigmasqr = 1.0 / std::pow(m_vortex.sigma(j), 2.0);
 
 				if (dr_ij2 < threshold) {
 					dK_ij = (1.0 - std::exp(-dr_ij2 * rsigmasqr)) / dr_ij2;
@@ -337,12 +337,12 @@ void DVMBase::biotsavart()
 					dK_ij = 1.0 / dr_ij2;
 				}
 
-				m_vortex.u[i] -= dK_ij * dz_ij * m_vortex.circ[j];
-				m_vortex.w[i] += dK_ij * dx_ij * m_vortex.circ[j];
+				m_vortex.u(i) -= dK_ij * dz_ij * m_vortex.circ(j);
+				m_vortex.w(i) += dK_ij * dx_ij * m_vortex.circ(j);
 			}
 		}
-		m_vortex.u[i] *= m_rpi2;
-		m_vortex.w[i] *= m_rpi2;
+		m_vortex.u(i) *= m_rpi2;
+		m_vortex.w(i) *= m_rpi2;
 	}
 }
 
@@ -571,14 +571,16 @@ void DVMBase::diffrw()
 void DVMBase::diffuse_vs_rw()
 {
 	double x, z, circ, sigma;
+	auto Nvs = m_vortsheet.size();
+	Vector x_vec(Nvs);
+	Vector z_vec(Nvs);
+	Vector circ_vec(Nvs);
+	Vector sigma_vec(Nvs);
 
 	double R1, R2, rrw, thetarw;
 
 	unsigned short seed = time(NULL) * 1000000;
 	seed48(&seed);
-
-	unsigned nv_panel;
-	double nv_gamma;
 
 	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
 
@@ -604,19 +606,24 @@ void DVMBase::diffuse_vs_rw()
 		sigma = std::pow(m_vortsheet.ds[i], m_sigma_cutoff);
 
 		// Add the released vortex
-		m_vortex.ID.push_back(m_vortex.size() + 1);
-		m_vortex.x.push_back(x);
-		m_vortex.z.push_back(z);
-		m_vortex.circ.push_back(circ);
-		m_vortex.sigma.push_back(sigma);
-
-		// Why are these initially zero???
-		m_vortex.u.push_back(0);
-		m_vortex.w.push_back(0);
-		m_vortex.uvs.push_back(0);
-		m_vortex.wvs.push_back(0);
-		m_vortex.omega.push_back(0);
+		m_vortex.ID.push_back(m_vortex.ID.size() + 1);
+		x_vec(i) = x;
+		z_vec(i) = z;
+		circ_vec(i) = circ;
+		sigma_vec(i) = sigma;
 	}
+
+	m_vortex.x.insert_rows(m_vortex.x.n_elem, x_vec);
+	m_vortex.z.insert_rows(m_vortex.z.n_elem, z_vec);
+	m_vortex.circ.insert_rows(m_vortex.circ.n_elem, circ_vec);
+	m_vortex.sigma.insert_rows(m_vortex.sigma.n_elem, sigma_vec);
+
+	// Why are these initially zero???
+	m_vortex.u.insert_rows(m_vortex.u.n_elem, m_vortsheet.size(), true);
+	m_vortex.w.insert_rows(m_vortex.w.n_elem, m_vortsheet.size(), true);
+	m_vortex.uvs.insert_rows(m_vortex.uvs.n_elem, m_vortsheet.size(), true);
+	m_vortex.wvs.insert_rows(m_vortex.wvs.n_elem, m_vortsheet.size(), true);
+	m_vortex.omega.insert_rows(m_vortex.omega.n_elem, m_vortsheet.size(), true);
 }
 
 void DVMBase::reflect()
@@ -637,14 +644,14 @@ void DVMBase::reflect()
 		min_dist[i] = 0;
 		closest_panel[i] = 0;
 
-		if (inside_body(m_vortex.x[i], m_vortex.z[i])) {
+		if (inside_body(m_vortex.x(i), m_vortex.z(i))) {
 
 			// Find which panel is closest to the vortex
 			min_prev = 10E6;
 			for (unsigned j = 0; j < m_vortsheet.size(); j++) {
 
-				dx = m_vortsheet.xc[j] - m_vortex.x[i];
-				dz = m_vortsheet.zc[j] - m_vortex.z[i];
+				dx = m_vortsheet.xc[j] - m_vortex.x(i);
+				dz = m_vortsheet.zc[j] - m_vortex.z(i);
 				dr = std::sqrt(std::pow(dx, 2.0) + std::pow(dz, 2.0));
 
 				if (dr < min_prev) {
@@ -654,8 +661,8 @@ void DVMBase::reflect()
 			}
 
 			// Find the mirror image vortex blob
-			x_init = m_vortex.x[i];
-			z_init = m_vortex.z[i];
+			x_init = m_vortex.x(i);
+			z_init = m_vortex.z(i);
 
 			x_0 = m_body.x[closest_panel[i]];
 			z_0 = m_body.z[closest_panel[i]];
@@ -667,9 +674,9 @@ void DVMBase::reflect()
 			// std::cout << "Mirrored vortex from " << m_vortex.x[i] << "," <<
 			// m_vortex.z[i];
 
-			m_vortex.x[i] = _mirror[0];
-			m_vortex.z[i] = _mirror[1];
-			m_vortex.circ[i] = m_vortex.circ[i]; // This does not do anything
+			m_vortex.x(i) = _mirror[0];
+			m_vortex.z(i) = _mirror[1];
+			m_vortex.circ(i) = m_vortex.circ(i); // This does not do anything
 			                                     // ??? - should this be
 			                                     // different ???
 			// std::cout<<m_vortex.x[i]<<"\t"<<m_vortex.z[i]<<"\n";
@@ -778,12 +785,12 @@ void DVMBase::probe_velocities()
 		u_i = 0.0;
 		w_i = 0.0;
 		for (unsigned j = 1; j < m_vortex.size(); j++) {
-			dx_ij = x_i - m_vortex.x[j];
-			dz_ij = z_i - m_vortex.z[j];
+			dx_ij = x_i - m_vortex.x(j);
+			dz_ij = z_i - m_vortex.z(j);
 			dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
-			threshold = m_kernel_threshold * std::pow(m_vortex.sigma[j], 2);
-			rsigmasqr = 1.0 / std::pow(m_vortex.sigma[j], 2);
+			threshold = m_kernel_threshold * std::pow(m_vortex.sigma(j), 2);
+			rsigmasqr = 1.0 / std::pow(m_vortex.sigma(j), 2);
 
 			if (dr_ij2 < threshold) {
 				dK_ij = (1.0 - std::exp(-dr_ij2 * rsigmasqr)) / dr_ij2;
@@ -793,8 +800,8 @@ void DVMBase::probe_velocities()
 
 			xkernel = dK_ij * dz_ij;
 			zkernel = dK_ij * dx_ij;
-			u_i = -xkernel * m_vortex.circ[j];
-			w_i = +zkernel * m_vortex.circ[j];
+			u_i = -xkernel * m_vortex.circ(j);
+			w_i = +zkernel * m_vortex.circ(j);
 			m_probe.u[i] = m_probe.u[i] + u_i;
 			m_probe.w[i] = m_probe.w[i] + w_i;
 		}

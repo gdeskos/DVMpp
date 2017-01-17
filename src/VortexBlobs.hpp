@@ -1,6 +1,8 @@
 #ifndef VORTEXBLOBS_H
 #define VORTEXBLOBS_H
 
+#include "BaseTypes.hpp"
+
 #include <vector>
 
 /// VortexBlobs describes the vortex blobs
@@ -9,15 +11,15 @@ class VortexBlobs
 {
 	public:
 	std::vector<unsigned> ID;  ///< Vortex blob ID
-	std::vector<double> x;     ///< x-coordinate
-	std::vector<double> z;     ///< z-coordinate
-	std::vector<double> circ;  ///< circulation
-	std::vector<double> sigma; ///< vortex cut-off
-	std::vector<double> u;     ///< local x-velocity
-	std::vector<double> w;     ///< local z-velocity
-	std::vector<double> uvs;
-	std::vector<double> wvs;
-	std::vector<double> omega; ///< Local vorticity
+	Vector x;     ///< x-coordinate
+	Vector z;     ///< z-coordinate
+	Vector circ;  ///< circulation
+	Vector sigma; ///< vortex cut-off
+	Vector u;     ///< local x-velocity
+	Vector w;     ///< local z-velocity
+	Vector uvs;
+	Vector wvs;
+	Vector omega; ///< Local vorticity
 
 	public:
 	VortexBlobs();
