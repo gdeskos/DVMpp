@@ -3,3 +3,4 @@ bin/
 *.tags
 *.gch
 doc/html/
+*~
