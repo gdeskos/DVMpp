@@ -167,6 +167,7 @@ void XmlHandler::buildOptionMap()
 	m_option_map.insert({"constants_max_gamma", {"constants", "max_gamma", "val", "maximum surface vorticity", ">0"}});
 	m_option_map.insert({"constants_kernel_threshold", {"constants", "kernel_threshold", "val", "kernel threshold", ">0"}});
 	m_option_map.insert({"constants_sigma_cutoff", {"constants", "sigma_cutoff", "val", "sigma cut-off", ">0"}});
+	m_option_map.insert({"constants_seed", {"constants", "seed", "val", "seed for rng. <0 random, >=0 seed", "none"}});
 
 	m_option_map.insert({"io_input_dir", {"io", "input_dir", "string", "input directory", "none"}});
 	m_option_map.insert({"io_output_dir", {"io", "output_dir", "string", "output directory", "none"}});

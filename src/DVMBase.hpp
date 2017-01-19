@@ -6,12 +6,12 @@
 #include "VortexBlobs.hpp"
 #include "VortexSheet.hpp"
 #include "XmlHandler.hpp"
+#include "Random.hpp"
 #include "pugiconfig.hpp"
 #include "pugixml.hpp"
 #include <algorithm>
 #include <armadillo>
 #include <cmath>
-#include <cstdlib>
 #include <fstream>
 #include <iostream>
 #include <sstream>
@@ -29,6 +29,8 @@ class DVMBase
 	VortexBlobs m_probe;     ///< The probe???
 
 	Matrix m_infM; ///< Influence matrix
+
+	Random m_rand; ///< Random number generation
 
 	/** @name Output files */
 	///@{

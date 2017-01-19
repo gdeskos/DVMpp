@@ -49,6 +49,9 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 
 	m_probe.m_x = xml.getList("probe", "x");
 	m_probe.m_z = xml.getList("probe", "z");
+
+	auto seed = xml.getIntAttribute("constants", "seed");
+	m_rand.seed(seed);
 }
 
 void DVMBase::read_input_coord()
@@ -513,14 +516,11 @@ void DVMBase::diffrw()
 {
 	double R1, R2, rrw, thetarw;
 
-	unsigned short seed = time(NULL) * 1000000;
-	seed48(&seed);
-
 	for (unsigned i = 0; i < m_vortex.size(); i++) {
 
 		// Generate two random numbers in the range 0...1
-		R1 = drand48();
-		R2 = drand48();
+		R1 = m_rand.rand();
+		R2 = m_rand.rand();
 
 		// Calculate r and theta for the random walk
 		rrw = std::sqrt(4.0 * m_nu * m_dt * std::log(1.0 / R1));
@@ -542,13 +542,10 @@ void DVMBase::diffuse_vs_rw()
 
 	double R1, R2, rrw, thetarw;
 
-	unsigned short seed = time(NULL) * 1000000;
-	seed48(&seed);
-
 	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
 
-		R1 = drand48();
-		R2 = drand48();
+		R1 = m_rand.rand();
+		R2 = m_rand.rand();
 
 		rrw = std::sqrt(4.0 * m_nu * m_dt * std::log(1.0 / R1));
 		thetarw = 2.0 * m_pi * R2;
