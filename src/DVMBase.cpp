@@ -452,7 +452,6 @@ void DVMBase::vortexsheetbc()
 	qy.set_size(m_vortex.size(), m_vortsheet.size());
 
 // compute the coefficients
-#pragma omp parallel for
 	for (unsigned i = 0; i < m_vortex.size(); i++) {
 
 		double xi = m_vortex.m_x[i];
