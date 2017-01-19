@@ -5,12 +5,14 @@
 
 VortexBlobs::VortexBlobs()
 {
-	m_pi = 4.0 * atan(1.0);
-	m_rpi2 = 1.0 / (2.0 * m_pi);
+	// Don't put anything in here, it is never called!
 }
 
 VortexBlobs::VortexBlobs(const XmlHandler &xml)
 {
+	m_pi = 4.0 * atan(1.0);
+	m_rpi2 = 1.0 / (2.0 * m_pi);
+
 	m_kernel_threshold = xml.getValueAttribute("constants", "kernel_threshold");
 }
 
