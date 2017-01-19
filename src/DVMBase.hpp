@@ -53,7 +53,7 @@ class DVMBase
 	double m_time;       ///< Current simulation time
 	unsigned m_step;     ///< Current timestep
 	unsigned m_steps;    ///< Total timesteps
-	unsigned m_maxGamma; ///< Maximum value of the vorticity
+	double m_maxGamma;   ///< Maximum value of the vorticity
 
 	/** @name Reading and writing */
 
