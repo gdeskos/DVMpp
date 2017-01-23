@@ -79,19 +79,13 @@ void DVMBase::solve()
 
 void DVMBase::compute_step()
 {
-	if (get_vs_size() == 0) { // Is this the correct get_size command?
-		throw std::string("stopped inside if");
-		solvevortexsheet();
-	} else {
+	// Inviscid Substep
+	solvevortexsheet();
 
-		// Inviscid Substep
-		solvevortexsheet();
+	compute_loads();
 
-		compute_loads();
-
-		convect(1); // first order second order scheme
-		diffrw();
-	}
+	convect(1); // first order second order scheme
+	diffrw();
 
 	// Viscous Substep
 	diffuse_vs_rw(); // a number of question here - not entirely
