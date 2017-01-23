@@ -319,15 +319,10 @@ void DVMBase::convect(unsigned order)
 		m_vortex.biotsavart();
 		vortexsheetbc();
 
-		for (unsigned i = 0; i < m_vortex.size(); i++) {
-			m_vortex.m_x[i] += (m_vortex.m_u[i] + m_vortex.m_uvs[i] + m_Ux) * m_dt;
-			m_vortex.m_z[i] += (m_vortex.m_w[i] + m_vortex.m_wvs[i] + m_Uz) * m_dt;
+		m_vortex.m_x += (m_vortex.m_u + m_vortex.m_uvs + m_Ux) * m_dt;
+		m_vortex.m_z += (m_vortex.m_w + m_vortex.m_wvs + m_Uz) * m_dt;
 
-			// std::cout << "Vortex [" << i << "] x = " << m_vortex.x[i] << " z
-			// = " << m_vortex.z[i] << std::endl;
 
-			// std::cout << "Ux = " << m_Ux << " Uz = " << m_Uz << std::endl;
-		}
 	} else if (order == 2) {
 
 		throw std::string("DVMBase::convet - only first order convection "
