@@ -172,6 +172,9 @@ class DVMBase
 	/// Determine if a particle lies inside the solid body
 	int inside_body(double x, double z);
 
+	/// Computes a particular timestep
+	void compute_step();
+
 	/// This is all the useless stuff below //////////////////////
 
 	/*

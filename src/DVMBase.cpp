@@ -65,38 +65,43 @@ void DVMBase::solve()
 	for (unsigned j = 1; j <= get_steps(); j++) {
 
 		increment_step();
-
-		if (get_vs_size() == 0) { // Is this the correct get_size command?
-			solvevortexsheet();
-			save_vort();
-		} else {
-
-			// Inviscid Substep
-			solvevortexsheet();
-
-			compute_loads();
-
-			save_vort();
-
-			convect(1); // first order second order scheme
-			diffrw();
-		}
-
-		// Viscous Substep
-		diffuse_vs_rw(); // a number of question here - not entirely
-		                     // clear
-
-		// Housekeeping
-		reflect();
+		compute_step();
 
 		// Output
 		write_outputs();
 
 		// Screen output
 		std::cout << "Simulation time          = " << get_time() << "\tStep "
-		     << j << "/" << get_steps() << std::endl;
+		          << j << "/" << get_steps() << std::endl;
 		std::cout << "Number of vortex blobs   = " << get_size() << std::endl;
 	}
+}
+
+void DVMBase::compute_step()
+{
+	if (get_vs_size() == 0) { // Is this the correct get_size command?
+		throw std::string("stopped inside if");
+		solvevortexsheet();
+		save_vort();
+	} else {
+
+		// Inviscid Substep
+		solvevortexsheet();
+
+		compute_loads();
+
+		save_vort();
+
+		convect(1); // first order second order scheme
+		diffrw();
+	}
+
+	// Viscous Substep
+	diffuse_vs_rw(); // a number of question here - not entirely
+	                 // clear
+
+	// Housekeeping
+	reflect();
 }
 
 void DVMBase::read_input_coord()
