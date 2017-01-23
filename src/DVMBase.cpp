@@ -53,6 +53,15 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 
 	auto seed = xml.getIntAttribute("constants", "seed");
 	m_rand.seed(seed);
+
+	auto scheme = getStr("time", "scheme");
+	if (scheme.compare("euler") == 0) {
+		m_scheme = Scheme::Euler;
+	} else if (scheme.compare("RK2") == 0) {
+		m_scheme = Scheme::RK2;
+	} else if (scheme.compare("RK4") == 0) {
+		m_scheme = Scheme::RK4;
+	} // Invalid cases dealt with by the xml handler
 }
 
 void DVMBase::solve()
@@ -84,7 +93,7 @@ void DVMBase::compute_step()
 
 	m_vortsheet.compute_loads();
 
-	convect(1); // first order second order scheme
+	convect();
 	diffrw();
 
 	// Viscous Substep
@@ -355,57 +364,18 @@ void DVMBase::write_outputs()
 	}
 }
 
-void DVMBase::convect(unsigned order)
+void DVMBase::convect()
 {
-	// Convects according to an order of magnitude
-	if (order == 1) {
+	switch (m_scheme) {
+	case Scheme::Euler:
 		m_vortex.biotsavart();
 		vortexsheetbc();
 
 		m_vortex.m_x += (m_vortex.m_u + m_vortex.m_uvs + m_Ux) * m_dt;
 		m_vortex.m_z += (m_vortex.m_w + m_vortex.m_wvs + m_Uz) * m_dt;
-
-
-	} else if (order == 2) {
-
-		throw std::string("DVMBase::convet - only first order convection "
-		                  "supported at present");
-
-		// This requires the full problem to be solved at a higher level -
-		// probably best done in main.cpp?
-		/* std::vector<double> x_old, z_old,u_old, w_old, u_tmp, w_tmp;
-		 x_old.resize(m_vortex.size());
-		 z_old.resize(m_vortex.size());
-		 u_old.resize(m_vortex.size());
-		 w_old.resize(m_vortex.size());
-		 u_tmp.resize(m_vortex.size());
-		 w_tmp.resize(m_vortex.size());
-
-		 biotsavart();
-		 vortexsheetbc();
-		 for(unsigned i=0;i<m_vortex.size();i++)
-		 {
-		     x_old[i]=m_vortex.x[i]; // Old values k step//
-		     z_old[i]=m_vortex.z[i];//  Old values k step//
-		     u_old[i]=m_vortex.u[i]+m_vortex.uvs[i]+m_Ux;
-		     w_old[i]=m_vortex.w[i]+m_vortex.wvs[i]+m_Uz;
-		     m_vortex.x[i]=x_old[i]+2.0/3.0*u_old[i]*dt; // Temporary values
-		     m_vortex.z[i]=z_old[i]+2.0/3.0*w_old[i]*dt; // Temporary values
-
-		 }
-
-		 biotsavart();
-		 vortexsheetbc();
-		 for(unsigned i=0;i<m_vortex.size();i++)
-		 {
-		     u_tmp[i]=m_vortex.u[i]+m_vortex.uvs[i]+m_Ux;
-		     w_tmp[i]=m_vortex.w[i]+m_vortex.wvs[i]+m_Uz;
-		     m_vortex.x[i]=x_old[i] + dt*(3.0/4.0*u_old[i]+1.0/4.0*u_tmp[i]);
-		     m_vortex.z[i]=z_old[i] + dt*(3.0/4.0*w_old[i]+1.0/4.0*w_tmp[i]);
-		 }*/
-	} else {
-		throw std::string("DVMBase::convect - only first and second order "
-		                  "convection supported");
+		break;
+	default:
+		throw std::string("nothing else implemented yet");
 	}
 }
 

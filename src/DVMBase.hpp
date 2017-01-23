@@ -55,6 +55,7 @@ class DVMBase
 	unsigned m_steps;    ///< Total timesteps
 	double m_maxGamma;   ///< Maximum value of the vorticity
 
+
 	/** @name Reading and writing */
 
 	///@{
@@ -76,6 +77,15 @@ class DVMBase
 	private:
 	public:
 	DVMBase(XmlHandler &xml);
+
+	/// Definition time-stepping scheme
+	enum Scheme {
+		Euler, ///< Euler explicit
+		RK2,   ///< Runge-Kutta 2nd order
+		RK4    ///< Runge-Kutta 4th order
+	};
+	Scheme m_scheme; ///< Time-stepping scheme
+
 
 	/** @name General Initialisation */
 	///@{
@@ -105,7 +115,7 @@ class DVMBase
 	///@}
 
 	/// Convect point vortices
-	void convect(unsigned order);
+	void convect();
 
 	/** @name Methods related to diffusion */
 	///@{

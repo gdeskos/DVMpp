@@ -44,7 +44,7 @@ class XmlHandler
 
 	/// Check that the provided string option is valid
 	/** Throws exception if invalid option given with a hint */
-	void check_string(const char* level, const char *parameter, std::string attr) const;
+	void check_string(const char* level, const char *parameter, std::string &attr) const;
 
 	/// Check that the provided value option is valid
 	/** Throws excetion if invalid option given with a hint */

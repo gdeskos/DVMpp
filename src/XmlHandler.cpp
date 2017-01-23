@@ -2,6 +2,7 @@
 
 #include <sstream>
 #include <iostream>
+#include <algorithm>
 
 XmlHandler::XmlHandler()
 {
@@ -63,7 +64,7 @@ pugi::xml_node XmlHandler::getNode(const char *level,
 std::string XmlHandler::getStringAttribute(const char *level,
                                            const char *parameter) const
 {
-	auto attr = getNode(level, parameter).attribute("string").as_string();
+	std::string attr = getNode(level, parameter).attribute("string").as_string();
 	check_string(level, parameter, attr);
 	return  attr;
 }
@@ -71,7 +72,7 @@ std::string XmlHandler::getStringAttribute(const char *level,
 std::vector<double> XmlHandler::getList(const char *level,
                                         const char *parameter) const
 {
-	auto vals = getNode(level, parameter).attribute("string").as_string();
+	std::string vals = getNode(level, parameter).attribute("string").as_string();
 	check_string(level, parameter, vals);
 
 	double val;
@@ -115,7 +116,7 @@ void XmlHandler::save(std::string filename) const
 	m_xml.save_file(filename.c_str());
 }
 
-void XmlHandler::check_string(const char* level, const char *parameter, std::string attr) const
+void XmlHandler::check_string(const char* level, const char *parameter, std::string &attr) const
 {
 	// Get the required values, get node has already ensured we have got
 	// something valid.
@@ -123,8 +124,16 @@ void XmlHandler::check_string(const char* level, const char *parameter, std::str
 
 	// Make sure we have a required value
 	if (req.compare("none") == 0) {
-		// do nothing - there is no required value
-	} else if (req.find(attr) == std::string::npos) {
+		// Just return string as is - it is not compared against elsewhere
+		return;
+	}
+
+	// Avoid case errors by making it lower case - changes underlying string!
+	std::transform(attr.begin(), attr.end(), attr.begin(), [](unsigned char c) {
+		return std::tolower(c);
+	});
+
+	if (req.find(attr) == std::string::npos) {
 		// can't find the given attr in the required string
 		std::ostringstream err;
 		err << "xml error: <" << level << "><" << parameter
@@ -179,6 +188,7 @@ void XmlHandler::buildOptionMap()
 	m_option_map.insert({"probe_x", {"probe", "x", "val", "x-coordinate of the probe", "none"}});
 	m_option_map.insert({"probe_z", {"probe", "z", "val", "z-coordinate of the probe", "none"}});
 
+	m_option_map.insert({"time_scheme", {"time", "scheme", "string", "time-stepping scheme", "euler RK2 RK4"}});
 	m_option_map.insert({"time_dt", {"time", "dt", "val", "time step [s]", ">0"}});
 	m_option_map.insert({"time_steps", {"time", "steps", "val", "total number of timesteps", ">0"}});
 }
