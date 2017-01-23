@@ -82,15 +82,12 @@ void DVMBase::compute_step()
 	if (get_vs_size() == 0) { // Is this the correct get_size command?
 		throw std::string("stopped inside if");
 		solvevortexsheet();
-		save_vort();
 	} else {
 
 		// Inviscid Substep
 		solvevortexsheet();
 
 		compute_loads();
-
-		save_vort();
 
 		convect(1); // first order second order scheme
 		diffrw();
@@ -759,13 +756,6 @@ void DVMBase::compute_loads()
 	}
 
 	std::cout << "Fx = " << m_fx << " Fz = " << m_fz << std::endl;
-}
-
-void DVMBase::save_vort()
-{
-	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
-		m_vortsheet.gamma_prev[i] = m_vortsheet.gamma[i];
-	}
 }
 
 void DVMBase::probe_velocities()

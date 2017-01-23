@@ -10,7 +10,6 @@ class VortexSheet
 {
 	public:
 	std::vector<double> gamma;      ///< surface vorticity
-	std::vector<double> gamma_prev; ///< surface vorticity in previous time step
 	std::vector<double> x;          ///< x-coordinate point
 	std::vector<double> z;          ///< z-coordinate point
 	std::vector<double> xc;         ///< x-collocation point

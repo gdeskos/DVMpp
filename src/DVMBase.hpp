@@ -104,9 +104,6 @@ class DVMBase
 
 	/// Solve for the vortex sheet
 	void solvevortexsheet();
-
-	/// Update the vorticity on each sheet
-	void save_vort();
 	///@}
 
 	/// Compute the forces on the body

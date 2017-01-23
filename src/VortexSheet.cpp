@@ -7,7 +7,6 @@ VortexSheet::VortexSheet()
 void VortexSheet::resize(unsigned size)
 {
 	gamma.resize(size);
-	gamma_prev.resize(size);
 	x.resize(size);
 	z.resize(size);
 	xc.resize(size);
@@ -22,7 +21,7 @@ void VortexSheet::resize(unsigned size)
 
 unsigned VortexSheet::size()
 {
-	if ((gamma.size() != xc.size()) && (gamma_prev.size() != xc.size())
+	if ((gamma.size() != xc.size())
 	    && (gamma.size() != zc.size())
 	    && (gamma.size() != ds.size())
 	    && (gamma.size() != theta.size())
