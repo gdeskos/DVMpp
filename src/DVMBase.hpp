@@ -71,8 +71,6 @@ class DVMBase
 	double m_rpi2; ///< 1 / 2pi
 
 	// Loads related variables
-	double m_fx;  ///< Force on the body in x
-	double m_fz;  ///< Force on the body in z
 	double m_rho; ///< Density of the fluid
 
 	private:
@@ -105,9 +103,6 @@ class DVMBase
 	/// Solve for the vortex sheet
 	void solvevortexsheet();
 	///@}
-
-	/// Compute the forces on the body
-	void compute_loads();
 
 	/// Convect point vortices
 	void convect(unsigned order);

@@ -5,7 +5,7 @@
 #include <time.h>
 #include <iostream>
 
-DVMBase::DVMBase(XmlHandler &xml) : m_vortex(xml)
+DVMBase::DVMBase(XmlHandler &xml) : m_vortex(xml), m_vortsheet(xml)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_step = 0;
@@ -82,7 +82,7 @@ void DVMBase::compute_step()
 	// Inviscid Substep
 	solvevortexsheet();
 
-	compute_loads();
+	m_vortsheet.compute_loads();
 
 	convect(1); // first order second order scheme
 	diffrw();
@@ -345,7 +345,9 @@ void DVMBase::write_outputs()
 		          << m_vortsheet.ds[i] << std::endl;
 	}
 
-	dev_loads << m_step << " " << m_fx << "\t" << m_fz << std::endl;
+	double fx, fz;
+	std::tie(fx, fz) = m_vortsheet.get_forces();
+	dev_loads << m_step << " " << fx << "\t" << fz << std::endl;
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
 		dev_probe << m_time << " " << m_probe.m_u[i] << " " << m_probe.m_w[i]
@@ -723,33 +725,6 @@ int DVMBase::inside_body(double x, double z)
 		}
 	}
 	return (cn & 1);
-}
-
-void DVMBase::compute_loads()
-{
-
-	double dp;
-
-	std::vector<double> p;
-	p.resize(m_vortsheet.size());
-
-	// not so sure here (reference pressure)
-	p[0] = 0;
-	for (unsigned i = 1; i < m_vortsheet.size(); i++) {
-
-		dp = m_rho / m_dt * m_vortsheet.gamma[i] * m_vortsheet.ds[i];
-
-		p[i] = p[0] - dp;
-	}
-
-	m_fx = 0;
-	m_fz = 0;
-	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
-		m_fx += p[i] * m_vortsheet.enx[i] * m_vortsheet.ds[i];
-		m_fz += p[i] * m_vortsheet.enz[i] * m_vortsheet.ds[i];
-	}
-
-	std::cout << "Fx = " << m_fx << " Fz = " << m_fz << std::endl;
 }
 
 void DVMBase::probe_velocities()
