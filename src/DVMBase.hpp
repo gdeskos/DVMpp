@@ -154,6 +154,9 @@ class DVMBase
 	/// Get the velocities at a given point
 	void probe_velocities();
 
+	/// Solve the particular problem - contains the timeloop
+	void solve();
+
 	private:
 	/// Compute the vortex sheet boundary condition
 	void vortexsheetbc();

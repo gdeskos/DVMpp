@@ -9,8 +9,6 @@
 #include <string>
 #include <time.h>
 
-using namespace std;
-
 int main(int argc, char *argv[])
 {
 
@@ -76,62 +74,22 @@ int main(int argc, char *argv[])
 		dvm.read_input_coord();
 		dvm.init_outputs();
 
-		dvm.form_vortex_sheet();
-		dvm.compute_influence_matrix();
-
 		clock_t start;
 		double cpu_time;
 
 		start = clock();
 
-		// Start the time loop;
-		for (unsigned j = 1; j <= dvm.get_steps(); j++) {
-
-			dvm.increment_step();
-
-			if (dvm.get_vs_size()
-			    == 0) { // Is this the correct get_size command?
-				dvm.solvevortexsheet();
-				dvm.save_vort();
-			} else {
-
-				// Inviscid Substep
-				dvm.solvevortexsheet();
-
-				dvm.compute_loads();
-
-				dvm.save_vort();
-
-				dvm.convect(1); // first order second order scheme
-				dvm.diffrw();
-			}
-
-			// Viscous Substep
-			dvm.diffuse_vs_rw(); // a number of question here - not entirely
-			                     // clear
-
-			// Housekeeping
-			dvm.reflect();
-
-			// Compute certain values
-			// bl.probe_velocities();
-
-			// Output
-			dvm.write_outputs();
-
-			// Screen output
-			cout << "Simulation time          = " << dvm.get_time() << "\tStep "
-			     << j << "/" << dvm.get_steps() << std::endl;
-			cout << "Number of vortex blobs   = " << dvm.get_size()
-			     << std::endl;
-		}
+		/// Solve the problem
+		dvm.solve();
 
 		// output the cpu time on screen
 		cpu_time = (clock() - start) / (double)CLOCKS_PER_SEC;
-		cout << "Used CPU time is : " << cpu_time << endl;
+		std::cout << "Used CPU time is : " << cpu_time << std::endl;
 
 		auto outdir = xml.getStringAttribute("io", "output_dir");
 		xml.save(outdir + stamp + "_xml_in.xml");
+
+
 
 	} catch (char *str) {
 		std::cout << "Exception thrown: " << str << std::endl;
