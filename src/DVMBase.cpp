@@ -417,24 +417,20 @@ void DVMBase::solvevortexsheet()
 	Vector brhs(Nl + 1);
 
 	if (m_vortex.size() == 0) {
-
-		for (unsigned i = 0; i < Nl; i++) {
-			brhs(i) = (m_Ux * m_vortsheet.enx[i] + m_Uz * m_vortsheet.enz[i]);
-		}
+		brhs.rows(0, Nl - 1) = m_Ux * m_vortsheet.enx + m_Uz * m_vortsheet.enz;
 		brhs(Nl) = -m_vortex.totalcirc();
 
 	} else {
-		std::vector<double> u, w;
-		u.resize(m_vortsheet.size());
-		w.resize(m_vortsheet.size());
+		Vector u(Nl);
+		Vector w(Nl);
 
 #pragma omp parallel for
 		for (unsigned i = 0; i < m_vortsheet.size(); i++) {
 
 			double dK_ij, rsigmasqr, dx_ij, dz_ij, dr_ij2, threshold;
 
-			u[i] = 0.0;
-			w[i] = 0.0;
+			u(i) = 0.0;
+			w(i) = 0.0;
 
 			for (unsigned j = 0; j < m_vortex.size(); j++) {
 
@@ -442,7 +438,8 @@ void DVMBase::solvevortexsheet()
 				dz_ij = m_vortsheet.zc[i] - m_vortex.m_z[j];
 				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
-				threshold = m_kernel_threshold * std::pow(m_vortex.m_sigma[j], 2);
+				threshold =
+				    m_kernel_threshold * std::pow(m_vortex.m_sigma[j], 2);
 				rsigmasqr = 1.0 / std::pow(m_vortex.m_sigma[j], 2);
 
 				if (dr_ij2 < threshold) {
@@ -451,32 +448,22 @@ void DVMBase::solvevortexsheet()
 					dK_ij = 1.0 / dr_ij2;
 				}
 
-				u[i] -= dK_ij * dz_ij * m_vortex.m_circ[j];
-				w[i] += dK_ij * dx_ij * m_vortex.m_circ[j];
+				u(i) -= dK_ij * dz_ij * m_vortex.m_circ[j];
+				w(i) += dK_ij * dx_ij * m_vortex.m_circ[j];
 			}
 		}
 
-		for (unsigned i = 0; i < Nl; i++) {
-			u[i] *= m_rpi2;
-			w[i] *= m_rpi2;
-		}
+		u *= m_rpi2;
+		w *= m_rpi2;
 
 		// Not entirely convinced that this is the correct BC (see Morgenthal)
-		for (unsigned i = 0; i < Nl; i++) {
-			brhs[i] = ((m_Ux + u[i]) * m_vortsheet.enx[i]
-			           + (m_Uz + w[i]) * m_vortsheet.enz[i]);
-		}
-		brhs[Nl] = -m_vortex.totalcirc();
+		brhs.rows(0, Nl - 1) =
+		    (m_Ux + u) % m_vortsheet.enx + (m_Uz + w) % m_vortsheet.enz;
+		brhs(Nl) = -m_vortex.totalcirc();
 	}
 
 	// Solve system
-	Vector X = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
-
-	// Copy back to the vortexsheet - removed special treatment here
-	// Why was this included? gamma_0 simply solution of Matrix
-	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
-		m_vortsheet.gamma[i] = X(i);
-	}
+	m_vortsheet.gamma = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
 }
 
 void DVMBase::vortexsheetbc()

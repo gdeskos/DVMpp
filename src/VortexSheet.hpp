@@ -1,9 +1,9 @@
 #ifndef VORTEXSHEET_H
 #define VORTEXSHEET_H
 
+#include "BaseTypes.hpp"
 #include "XmlHandler.hpp"
 #include <iostream>
-#include <vector>
 #include <tuple>
 
 /// VortexSheet describes the vortex sheet
@@ -11,17 +11,17 @@
 class VortexSheet
 {
 	public:
-	std::vector<double> gamma;      ///< surface vorticity
-	std::vector<double> x;          ///< x-coordinate point
-	std::vector<double> z;          ///< z-coordinate point
-	std::vector<double> xc;         ///< x-collocation point
-	std::vector<double> zc;         ///< z-collocation point
-	std::vector<double> theta;      ///< angle
-	std::vector<double> ds;         ///< panel
-	std::vector<double> enx;        ///< x-coor normal unit vector
-	std::vector<double> enz;        ///< z-coor normal unit vector
-	std::vector<double> etx;        ///< x-coor tangential unit vector
-	std::vector<double> etz;        ///< z-coor tangential unit vector
+	Vector gamma;      ///< surface vorticity
+	Vector x;          ///< x-coordinate point
+	Vector z;          ///< z-coordinate point
+	Vector xc;         ///< x-collocation point
+	Vector zc;         ///< z-collocation point
+	Vector theta;      ///< angle
+	Vector ds;         ///< panel
+	Vector enx;        ///< x-coor normal unit vector
+	Vector enz;        ///< z-coor normal unit vector
+	Vector etx;        ///< x-coor tangential unit vector
+	Vector etz;        ///< z-coor tangential unit vector
 
 	private:
 	double m_rho; ///< Density of fluid

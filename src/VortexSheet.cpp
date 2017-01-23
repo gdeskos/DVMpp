@@ -13,41 +13,27 @@ VortexSheet::VortexSheet(const XmlHandler &xml)
 
 void VortexSheet::resize(unsigned size)
 {
-	gamma.resize(size);
-	x.resize(size);
-	z.resize(size);
-	xc.resize(size);
-	zc.resize(size);
-	theta.resize(size);
-	ds.resize(size);
-	enx.resize(size);
-	enz.resize(size);
-	etx.resize(size);
-	etz.resize(size);
+	gamma.set_size(size);
+	x.set_size(size);
+	z.set_size(size);
+	xc.set_size(size);
+	zc.set_size(size);
+	theta.set_size(size);
+	ds.set_size(size);
+	enx.set_size(size);
+	enz.set_size(size);
+	etx.set_size(size);
+	etz.set_size(size);
 }
 
 void VortexSheet::compute_loads()
 {
-	double dp;
+	Vector p = -m_rho / m_dt * (gamma % ds);
 
-	std::vector<double> p;
-	p.resize(size());
+	p(0) = 0;
 
-	// not so sure here (reference pressure)
-	p[0] = 0;
-	for (unsigned i = 1; i < size(); i++) {
-
-		dp = m_rho / m_dt * gamma[i] * ds[i];
-
-		p[i] = p[0] - dp;
-	}
-
-	m_fx = 0;
-	m_fz = 0;
-	for (unsigned i = 0; i < size(); i++) {
-		m_fx += p[i] * enx[i] * ds[i];
-		m_fz += p[i] * enz[i] * ds[i];
-	}
+	m_fx = arma::sum(p % enx % ds);
+	m_fz = arma::sum(p % enz % ds);
 
 	std::cout << "Fx = " << m_fx << " Fz = " << m_fz << std::endl;
 }
@@ -70,7 +56,7 @@ unsigned VortexSheet::size()
 void VortexSheet::print_collocation()
 {
 	for (unsigned i = 0; i < size(); i++) {
-		std::cout << "(xc,zc) = (" << xc[i] << "," << zc[i] << ")" << std::endl;
+		std::cout << "(xc,zc) = (" << xc(i) << "," << zc(i) << ")" << std::endl;
 	}
 }
 
@@ -78,16 +64,14 @@ void VortexSheet::print_unit_vectors()
 {
 	for (unsigned i = 0; i < size(); i++) {
 		std::cout << "For panel No " << i << "the normal vectors are en = ("
-		          << enx[i] << "," << enz[i] << ") and et = (" << etx[i] << ","
-		          << etz[i] << ")" << std::endl;
+		          << enx(i) << "," << enz(i) << ") and et = (" << etx(i) << ","
+		          << etz(i) << ")" << std::endl;
 	}
 }
 
 void VortexSheet::print_gamma()
 {
-	for (unsigned i = 0; i < size(); i++) {
-		std::cout << gamma[i] << std::endl;
-	}
+	gamma.print();
 }
 
 std::tuple<double, double> VortexSheet::get_forces()
