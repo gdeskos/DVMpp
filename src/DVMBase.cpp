@@ -110,7 +110,6 @@ void DVMBase::read_input_coord()
 	std::string file = m_in_dir + m_domain_file;
 	std::string line;
 	std::ifstream coor_file(file.c_str());
-	int index = 0;
 	double tmp1, tmp2;
 
 	if (coor_file.is_open()) {
@@ -251,7 +250,7 @@ void DVMBase::compute_influence_matrix()
 
 	std::cout << "m_infM.size " << m_infM.size() << std::endl;
 
-	double c1, c2, c3, c4, c5, c6, c7, c8, c9;
+	double c1, c2, c3, c4, c5, c6, c7, c9;
 	Matrix p, q;
 	p.set_size(Nl, Nl);
 	q.set_size(Nl, Nl);
@@ -281,8 +280,6 @@ void DVMBase::compute_influence_matrix()
 				c5 = (xci - xj) * sin(thetaj) - (zci - zj) * cos(thetaj);
 				c6 = log(1.0 + dsj * ((dsj + 2 * c1) / c2));
 				c7 = atan2((c5 * dsj), (c2 + c1 * dsj));
-				c8 = (xci - xj) * sin(thetai - 2.0 * thetaj)
-				     + (zci - zj) * cos(thetai - 2.0 * thetaj);
 				c9 = (xci - xj) * cos(thetai - 2.0 * thetaj)
 				     - (zci - zj) * sin(thetai - 2.0 * thetaj);
 
@@ -438,7 +435,7 @@ void DVMBase::solvevortexsheet()
 
 void DVMBase::vortexsheetbc()
 {
-	double c1, c2, c3, c4, c5, c6, c7, c8, c9;
+	double c1, c2, c5, c6, c7, c8, c9;
 	Matrix px, py, qx, qy;
 
 	px.set_size(m_vortex.size(), m_vortsheet.size());
@@ -690,7 +687,7 @@ void DVMBase::probe_velocities()
 	double rpi2 = 1.0 / (2.0 * m_pi);
 	double dx_ij, dz_ij, dr_ij2, threshold, xkernel;
 	double dK_ij, zkernel;
-	double x_i, z_i, u_i, w_i, c_i;
+	double x_i, z_i, u_i, w_i;
 
 	// Compute the velocity vector at the probe points
 
@@ -727,7 +724,7 @@ void DVMBase::probe_velocities()
 		}
 	}
 
-	double c1, c2, c3, c4, c5, c6, c7, c8, c9;
+	double c1, c2, c5, c6, c7, c8, c9;
 	Matrix px, py, qx, qy;
 	px.set_size(m_probe.size(), m_vortsheet.size());
 	qx.set_size(m_probe.size(), m_vortsheet.size());
