@@ -8,19 +8,50 @@
 #include <iostream>
 #include <string>
 #include <time.h>
+#include <boost/program_options.hpp>
 
 int main(int argc, char *argv[])
 {
 
 	try {
+		// Deal with command line options
+		namespace po = boost::program_options;
+		po::options_description desc("DVM++ commandline options");
+		desc.add_options()("help,h", "prints this help message")(
+		    "input-file,f", po::value<std::string>(), "input xml file")(
+		    "example-xml", "prints an example xml to stdout or file");
 
-		if (argc != 2) {
-			throw std::string("Must supply input XML file name");
+		po::positional_options_description p;
+		p.add("input-file", 1);
+
+		po::variables_map vm;
+		po::store(po::command_line_parser(argc, argv)
+		              .options(desc)
+		              .positional(p)
+		              .run(),
+		          vm);
+		po::notify(vm);
+
+		if (vm.empty()) {
+			std::cout << desc << "\n";
+			return 1;
 		}
 
-		std::string input_xml_file(argv[1]);
+		if (vm.count("example-xml")) {
+			XmlHandler xml;
 
-		XmlHandler xml(input_xml_file);
+			// The input file option will capture the positional argument for
+			// the name of the example xml so we can just use it!
+			std::string file = "-";
+			if (vm.count("input-file")) {
+				file = vm["input-file"].as<std::string>();
+			}
+			xml.writeExample(file);
+
+			return 1;
+		}
+
+		XmlHandler xml(vm["input-file"].as<std::string>());
 
 		std::string experiment_name, domain_type;
 		// FileNames file_names;
@@ -88,8 +119,6 @@ int main(int argc, char *argv[])
 
 		auto outdir = xml.getStringAttribute("io", "output_dir");
 		xml.save(outdir + stamp + "_xml_in.xml");
-
-
 
 	} catch (char *str) {
 		std::cout << "Exception thrown: " << str << std::endl;

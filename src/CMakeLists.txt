@@ -18,4 +18,11 @@ if (NOT BLAS_FOUND)
 endif()
 target_link_libraries(DVM++ ${BLAS_LIBRARIES})
 
+find_package(Boost 1.56.0 REQUIRED COMPONENTS program_options)
+if (Boost_FOUND)
+	include_directories(${Boost_INCLUDE_DIR})
+	add_definitions("-DHAS_BOOST")
+	target_link_libraries(DVM++ ${Boost_LIBRARIES})
+endif()
+
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O2 -Wall -Wextra -pipe ${OpenMP_CXX_FLAGS}")
