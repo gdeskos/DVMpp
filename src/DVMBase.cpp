@@ -93,7 +93,7 @@ void DVMBase::solve()
 void DVMBase::compute_step()
 {
 	// Inviscid Substep
-	solvevortexsheet();
+	solvevortexsheet(m_vortex);
 
 	m_vortsheet.compute_loads();
 
@@ -380,16 +380,16 @@ void DVMBase::convect()
 	}
 }
 
-void DVMBase::solvevortexsheet()
+void DVMBase::solvevortexsheet(VortexBlobs &blobs)
 {
 
 	unsigned Nl = m_vortsheet.size();
 
 	Vector brhs(Nl + 1);
 
-	if (m_vortex.size() == 0) {
+	if (blobs.size() == 0) {
 		brhs.rows(0, Nl - 1) = m_Ux * m_vortsheet.enx + m_Uz * m_vortsheet.enz;
-		brhs(Nl) = -m_vortex.totalcirc();
+		brhs(Nl) = -blobs.totalcirc();
 
 	} else {
 		Vector u(Nl);
@@ -403,15 +403,15 @@ void DVMBase::solvevortexsheet()
 			u(i) = 0.0;
 			w(i) = 0.0;
 
-			for (unsigned j = 0; j < m_vortex.size(); j++) {
+			for (unsigned j = 0; j < blobs.size(); j++) {
 
-				dx_ij = m_vortsheet.xc[i] - m_vortex.m_x[j];
-				dz_ij = m_vortsheet.zc[i] - m_vortex.m_z[j];
+				dx_ij = m_vortsheet.xc[i] - blobs.m_x(j);
+				dz_ij = m_vortsheet.zc[i] - blobs.m_z(j);
 				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
 				threshold =
-				    m_kernel_threshold * std::pow(m_vortex.m_sigma[j], 2);
-				rsigmasqr = 1.0 / std::pow(m_vortex.m_sigma[j], 2);
+				    m_kernel_threshold * std::pow(blobs.m_sigma(j), 2);
+				rsigmasqr = 1.0 / std::pow(blobs.m_sigma(j), 2);
 
 				if (dr_ij2 < threshold) {
 					dK_ij = (1.0 - std::exp(-dr_ij2 * rsigmasqr)) / dr_ij2;
@@ -419,8 +419,8 @@ void DVMBase::solvevortexsheet()
 					dK_ij = 1.0 / dr_ij2;
 				}
 
-				u(i) -= dK_ij * dz_ij * m_vortex.m_circ[j];
-				w(i) += dK_ij * dx_ij * m_vortex.m_circ[j];
+				u(i) -= dK_ij * dz_ij * blobs.m_circ(j);
+				w(i) += dK_ij * dx_ij * blobs.m_circ(j);
 			}
 		}
 
@@ -430,7 +430,7 @@ void DVMBase::solvevortexsheet()
 		// Not entirely convinced that this is the correct BC (see Morgenthal)
 		brhs.rows(0, Nl - 1) =
 		    (m_Ux + u) % m_vortsheet.enx + (m_Uz + w) % m_vortsheet.enz;
-		brhs(Nl) = -m_vortex.totalcirc();
+		brhs(Nl) = -blobs.totalcirc();
 	}
 
 	// Solve system

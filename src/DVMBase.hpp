@@ -111,7 +111,7 @@ class DVMBase
 	void form_vortex_sheet();
 
 	/// Solve for the vortex sheet
-	void solvevortexsheet();
+	void solvevortexsheet(VortexBlobs &blobs);
 	///@}
 
 	/// Convect point vortices
