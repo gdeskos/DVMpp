@@ -160,9 +160,6 @@ class DVMBase
 	void solve();
 
 	private:
-	/// Compute the vortex sheet boundary condition
-	void vortexsheetbc();
-
 	/// Mirror a particle from one side of the boundary to the other
 	std::vector<double> mirror(double x_init,
 	                           double z_init,
