@@ -118,6 +118,7 @@ int main(int argc, char *argv[])
 		std::cout << "Used CPU time is : " << cpu_time << std::endl;
 
 		auto outdir = xml.getStringAttribute("io", "output_dir");
+		outdir = (outdir.back() == '/') ? outdir : outdir + '/';
 		xml.save(outdir + stamp + "_xml_in.xml");
 
 	} catch (char *str) {

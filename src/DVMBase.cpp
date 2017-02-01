@@ -25,9 +25,13 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 		return xml.getStringAttribute(l, p);
 	};
 
+	auto checksep = [](std::string str) {
+		return (str.back() == '/') ? str : str + '/';
+	};
+
 	// Get all the various inputs. Valid inputs are checked by the xml handler
-	m_in_dir = getStr("io", "input_dir");
-	m_out_dir = getStr("io", "output_dir");
+	m_in_dir = checksep(getStr("io", "input_dir"));
+	m_out_dir = checksep(getStr("io", "output_dir"));
 	m_domain_file = getStr("io", "domain_file");
 
 	m_rho = getVal("constants", "density");

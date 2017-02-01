@@ -5,6 +5,9 @@ import xml.etree.ElementTree as etree
 import argparse
 from distutils.util import strtobool
 
+def addsep(path):
+    return os.path.join(path, '')
+
 def main():
     parser = argparse.ArgumentParser('Update file paths in an DVM++ xml to the current directory')
     parser.add_argument('xml_file', help='the xml file to be updated', nargs='+')
@@ -14,21 +17,21 @@ def main():
     args = parser.parse_args()
 
     try:
-        pwd = os.getcwd()
+        pwd = addsep(os.getcwd())
 
         for xml_file in args.xml_file:
             tree = etree.parse(xml_file)
             input_file = tree.find('io').find('input_dir')
             if args.input:
-                input_file.set('string', args.input)
+                input_file.set('string', addsep(args.input))
             else:
                 input_file.set('string', pwd)
 
             output_file = tree.find('io').find('output_dir')
             if args.output:
-                output_file.set('string', args.output)
+                output_file.set('string', addsep(args.output))
             else:
-                output_file.set('string', os.path.join(pwd, 'outputs'))
+                output_file.set('string', addsep(os.path.join(pwd, 'outputs')))
 
             tree.write(xml_file)
 
