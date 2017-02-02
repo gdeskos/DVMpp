@@ -173,9 +173,9 @@ void XmlHandler::buildOptionMap()
 {
 	m_option_map.insert({"constants_density", {"constants", "density", "val", "specific gravity of fluid", ">0"}});
 	m_option_map.insert({"constants_nu", {"constants", "nu", "val", "kinematic viscosity [m^2 / s]", ">0"}});
-	m_option_map.insert({"constants_max_gamma", {"constants", "max_gamma", "val", "maximum surface vorticity", ">0"}});
+	m_option_map.insert({"constants_max_NumPanelVort", {"constants", "max_NumPanelVort", "val", "maximum number of panel vortices", ">0"}});
 	m_option_map.insert({"constants_kernel_threshold", {"constants", "kernel_threshold", "val", "kernel threshold", ">0"}});
-	m_option_map.insert({"constants_sigma_cutoff", {"constants", "sigma_cutoff", "val", "sigma cut-off", ">0"}});
+	m_option_map.insert({"constants_cutoff_exp", {"constants", "cutoff_exp", "val", "cutoff exp", "none"}});
 	m_option_map.insert({"constants_seed", {"constants", "seed", "val", "seed for rng. <0 random, >=0 seed", "none"}});
 
 	m_option_map.insert({"io_input_dir", {"io", "input_dir", "string", "input directory", "none"}});

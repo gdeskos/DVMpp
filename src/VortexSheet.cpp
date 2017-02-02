@@ -14,8 +14,8 @@ VortexSheet::VortexSheet(const XmlHandler &xml)
 void VortexSheet::resize(unsigned size)
 {
 	gamma.set_size(size);
-	x.set_size(size);
-	z.set_size(size);
+	x.set_size(size+1);
+	z.set_size(size+1);
 	xc.set_size(size);
 	zc.set_size(size);
 	theta.set_size(size);
@@ -42,6 +42,8 @@ unsigned VortexSheet::size()
 {
 	if ((gamma.size() != xc.size())
 	    && (gamma.size() != zc.size())
+	    && (gamma.size() != x.size()-1)
+	    && (gamma.size() != z.size()-1)
 	    && (gamma.size() != ds.size())
 	    && (gamma.size() != theta.size())
 	    && (gamma.size() != enx.size())

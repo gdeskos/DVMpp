@@ -4,6 +4,7 @@
 #include <iomanip>
 #include <time.h>
 #include <iostream>
+#include <cassert>
 
 DVMBase::DVMBase(XmlHandler &xml) : m_vortex(xml), m_vortsheet(xml)
 {
@@ -36,14 +37,14 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 
 	m_rho = getVal("constants", "density");
 	m_nu = getVal("constants", "nu");
-	m_maxGamma = getVal("constants", "max_gamma");
+	m_maxNumPanelVort = getVal("constants", "max_NumPanelVort");
 	m_kernel_threshold = getVal("constants", "kernel_threshold");
-	m_sigma_cutoff = getVal("constants", "sigma_cutoff");
+	m_cutoff_exp = getVal("constants", "cutoff_exp");
 
 	// Need to find a way in the xml handler to deal with this too
-	if (m_sigma_cutoff >= 1) {
+	if (m_cutoff_exp >= 1 ) {
 		throw std::string(
-		    "<IC2DDVM><constants><sigma_cutoff> must be less than one");
+		    "<IC2DDVM><constants><cutoff_exponent> must be less than one and greater than 0.5");
 	}
 
 	m_dt = getVal("time", "dt");
@@ -196,8 +197,14 @@ void DVMBase::form_vortex_sheet()
 
 	// Define the characteristics of the vortex sheet
 	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
-
-		// collocation points on the vortex sheet
+        
+        // Assign the body points to the vortsheet, remember this is m_vortsheet.size()+1
+		m_vortsheet.x[i]=m_body.x[i];
+		m_vortsheet.z[i]=m_body.z[i];
+		m_vortsheet.x[i+1]=m_body.x[i+1];
+		m_vortsheet.z[i+1]=m_body.z[i+1];
+        
+        // collocation points on the vortex sheet
 		m_vortsheet.xc[i] = 0.5 * (m_body.x[i] + m_body.x[i + 1]);
 		m_vortsheet.zc[i] = 0.5 * (m_body.z[i] + m_body.z[i + 1]);
 
@@ -526,59 +533,86 @@ void DVMBase::diffrw()
 	}
 }
 
-void DVMBase::diffuse_vs_rw()
+void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices 
 {
-	double x, z, circ, sigma;
+	//double x, z, circ, sigma;
 	auto Nvs = m_vortsheet.size();
-	Vector x_vec(Nvs);
-	Vector z_vec(Nvs);
-	Vector circ_vec(Nvs);
-	Vector sigma_vec(Nvs);
 
-	double R1, R2, rrw, thetarw;
+	double R, rrw;
 
-	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
+    // First we need to determine how many of these vortices will be created at each 
+    // panel. This is in accordance with Morgenthal PhD 4.3.6 Vortex release algorithm (eq. 4.108)
+    Vector_un PanelNewVort(Nvs);                            // Panel's new vortices
+    Vector PanelCirc = m_vortsheet.gamma%m_vortsheet.ds;    // Panel's total circulation
+    Vector AbsPanelCirc = arma::abs(PanelCirc/arma::max(PanelCirc)*m_maxNumPanelVort); // Absolute value of the panel vorticity   
+    Vector Circ_new(Nvs);
+    //GD---> Should not need to do a loop here. Unfortunately for some reason armadillo does not allow me to do 
+    //       PanelNewVort=arma::round(AbsPanelCirc)+arma::ones(Nvs,1), perhaps MAB can fix this. 
+    for (unsigned i=0;i<Nvs;i++)
+    {
+    PanelNewVort[i] = std::floor(AbsPanelCirc[i])+1; // Number of released vortices per panel
+    assert(PanelNewVort[i]>0);    
+    Circ_new[i]=PanelCirc[i]/PanelNewVort[i]; // Circulation of each vortex we release from the ith panel 
+    // Perhaps we need to put a debug switch and only then printing this
+    std::cout<<"Panel\t"<<i<<"\t will release \t"<<PanelNewVort[i]<<"\tvortex/vortices"<<" of "<<Circ_new[i]<<"\t strength"<<std::endl;
+    }
+    
+    unsigned Nrv=arma::sum(PanelNewVort); //Number of the new vortices. 
+    // if we set the maximum number of vortices from each panel=1, then Nrv=Nsv
+    Vector x_vec(Nrv);
+	Vector z_vec(Nrv);
+	Vector circ_vec(Nrv);
+	Vector sigma_vec(Nrv); 
+    unsigned counter=0; 
 
-		R1 = m_rand.rand();
-		R2 = m_rand.rand();
+    //Calculating the position of the newelly released vortices
+    double xstart,zstart,xm,zm;
 
-		rrw = std::sqrt(4.0 * m_nu * m_dt * std::log(1.0 / R1));
-		thetarw = 2.0 * m_pi * R2;
+    for (unsigned i=0; i<Nvs;i++){
+        xstart=m_vortsheet.x[i];zstart=m_vortsheet.z[i]; // Coordinates for the start point of the panel
+        unsigned j=0;
+        while (j<PanelNewVort[i])
+        {
+            //Find locations at the ith panel from which the vortices should be released
+            xm=xstart+m_vortsheet.ds[i]*m_vortsheet.theta[i]/PanelNewVort[i];
+            zm=zstart+m_vortsheet.ds[i]*m_vortsheet.theta[i]/PanelNewVort[i];
+            //Here is the tricky bit !!! Morgenthal shows in figure 4.7 that the particles may be released with
+            //some random walk in both the normal (to the panel) and the tangential directions. This is
+            //wrong according to Chorin 1978. Since we are in the boundary layer, the diffusion process takes place only
+            //in the normal direction and not the streamwise. This also according to Prandtl's boundary layer approximation.
+            //I will implement the Chorin 1978 here and not the Morgenthal one. In the end, this should not make 
+            //a huge difference.
+        
+            //Create Random walk values
+            R=m_rand.rand();
+            rrw=std::abs(std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R))); //This is half normal distribution only in the ourwards direction
+	        // Add the released vortex
+            m_vortex.m_ID.push_back(m_vortex.m_ID.size() + 1); //add the id
+            x_vec(counter)=xm+rrw*sin(m_vortsheet.theta[i]);
+            z_vec(counter)=zm-rrw*cos(m_vortsheet.theta[i]);
+            circ_vec(counter)=Circ_new[i];
+            //Now for the cut-off kernel we implement things as suggested by Mirta Perlman 1985 (JCP)
+            //using sigma=ds^q where 0.5<q<1. She suggests using q=0.625! This q parameter is the coefficient not the cutoff
+            //parameter the inputs file.
+            sigma_vec(counter)=std::pow(m_vortsheet.ds[i],m_cutoff_exp);
+            counter++;
+            assert(counter<=Nrv);
+            j++;
+        }   
+            
+    }
+	        m_vortex.m_x.insert_rows(m_vortex.m_x.n_elem, x_vec);
+	        m_vortex.m_z.insert_rows(m_vortex.m_z.n_elem, z_vec);
+	        m_vortex.m_circ.insert_rows(m_vortex.m_circ.n_elem, circ_vec);
+	        m_vortex.m_sigma.insert_rows(m_vortex.m_sigma.n_elem, sigma_vec);
+            
+            //And then we initialize everything else to zero
+	        m_vortex.m_u.insert_rows(m_vortex.m_u.n_elem, Nrv, true);
+	        m_vortex.m_w.insert_rows(m_vortex.m_w.n_elem, Nrv, true);
+	        m_vortex.m_uvs.insert_rows(m_vortex.m_uvs.n_elem, Nrv, true);
+	        m_vortex.m_wvs.insert_rows(m_vortex.m_wvs.n_elem, Nrv, true);
+	        m_vortex.m_omega.insert_rows(m_vortex.m_omega.n_elem, Nrv, true); 
 
-		// The position of the released vortex blox after diffusion using random
-		// walk
-		x = m_vortsheet.xc[i] + rrw * cos(thetarw);
-		z = m_vortsheet.zc[i] + rrw * sin(thetarw);
-
-		// Obtain the circulation (see Morgenthal p. 36)
-		if (i == m_vortsheet.size() - 1) {
-			circ = 0.5 * (m_vortsheet.gamma[i] * m_vortsheet.ds[i]
-			              + m_vortsheet.gamma[0] * m_vortsheet.ds[0]);
-		} else {
-			circ = 0.5 * (m_vortsheet.gamma[i] * m_vortsheet.ds[i]
-			              + m_vortsheet.gamma[i + 1] * m_vortsheet.ds[i + 1]);
-		}
-		sigma = std::pow(m_vortsheet.ds[i], m_sigma_cutoff);
-
-		// Add the released vortex
-		m_vortex.m_ID.push_back(m_vortex.m_ID.size() + 1);
-		x_vec(i) = x;
-		z_vec(i) = z;
-		circ_vec(i) = circ;
-		sigma_vec(i) = sigma;
-	}
-
-	m_vortex.m_x.insert_rows(m_vortex.m_x.n_elem, x_vec);
-	m_vortex.m_z.insert_rows(m_vortex.m_z.n_elem, z_vec);
-	m_vortex.m_circ.insert_rows(m_vortex.m_circ.n_elem, circ_vec);
-	m_vortex.m_sigma.insert_rows(m_vortex.m_sigma.n_elem, sigma_vec);
-
-	// Why are these initially zero???
-	m_vortex.m_u.insert_rows(m_vortex.m_u.n_elem, m_vortsheet.size(), true);
-	m_vortex.m_w.insert_rows(m_vortex.m_w.n_elem, m_vortsheet.size(), true);
-	m_vortex.m_uvs.insert_rows(m_vortex.m_uvs.n_elem, m_vortsheet.size(), true);
-	m_vortex.m_wvs.insert_rows(m_vortex.m_wvs.n_elem, m_vortsheet.size(), true);
-	m_vortex.m_omega.insert_rows(m_vortex.m_omega.n_elem, m_vortsheet.size(), true);
 }
 
 void DVMBase::reflect()

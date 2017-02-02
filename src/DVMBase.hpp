@@ -47,13 +47,13 @@ class DVMBase
 	double m_Uz; ///< Free stream velocity in ym_n, m_np;
 	double m_n; ///< Number of body points
 
-	double m_kernel_threshold; ///< Kernel threshold
-	double m_sigma_cutoff;     ///< Cut-off distance
+	double m_kernel_threshold;    ///< Kernel threshold
+	double m_cutoff_exp;          ///< Cut-off exponent q used in sigma=h^q according to Perlman 1985 (JCP, 1985,59, 200-223)
 
-	double m_time;       ///< Current simulation time
-	unsigned m_step;     ///< Current timestep
-	unsigned m_steps;    ///< Total timesteps
-	double m_maxGamma;   ///< Maximum value of the vorticity
+	double m_time;                ///< Current simulation time
+	unsigned m_step;              ///< Current timestep
+	unsigned m_steps;             ///< Total timesteps
+	unsigned m_maxNumPanelVort;   ///< Maximum number of panel vortices
 
 
 	/** @name Reading and writing */
