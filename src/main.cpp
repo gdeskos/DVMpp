@@ -99,6 +99,8 @@ int main(int argc, char *argv[])
 		outdir = (outdir.back() == '/') ? outdir : outdir + '/';
 		xml.save(outdir + stamp + "_xml_in.xml");
 
+		std::cout << "Completed DVM computations succesfully" << std::endl;
+
 	} catch (char *str) {
 		std::cout << "Exception thrown: " << str << std::endl;
 	} catch (std::string str) {
@@ -106,8 +108,6 @@ int main(int argc, char *argv[])
 	} catch (...) {
 		std::cout << "Unhandled exception type" << std::endl;
 	}
-
-	std::cout << "Completed DVM computations succesfully" << std::endl;
 
 	return 0;
 }
