@@ -96,16 +96,22 @@ void DVMBase::compute_step()
 	// Inviscid Substep
 	solvevortexsheet();
 
-	m_vortsheet.compute_loads();
+    double Urel;
+    Urel=std::sqrt(m_Ux*m_Ux+m_Uz*m_Uz);
+	m_vortsheet.compute_loads(Urel);
+    //This should not be here! This is just a test
+	double fx, fz;
+	std::tie(fx, fz) = m_vortsheet.get_forces();
+    std::cout<<"C_D = "<<fx/(0.5*m_rho*1.0*m_Ux*m_Ux)<<"\t"<<"C_L = "<<fz/(0.5*m_rho*1.0*m_Ux*m_Ux)<<std::endl;
 
 	convect();
-	diffrw();
-
-	// Viscous Substep
-	diffuse_vs_rw(); // a number of question here - not entirely
-	                 // clear
+    
+    // The diffusion substep is split into two steps
+    diffuse_vs_rw(); // A diffussion problem with only a flux of vorticity in the boundaries dgamma/dn=a
+	diffrw();        // A diffussion problem in an infinite domain
 
 	// Housekeeping
+    // For a large time step vortices may cross the boundary due to the random walk we reflect them back
 	reflect();
 }
 
@@ -553,8 +559,6 @@ void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices
     PanelNewVort[i] = std::floor(AbsPanelCirc[i])+1; // Number of released vortices per panel
     assert(PanelNewVort[i]>0);    
     Circ_new[i]=PanelCirc[i]/PanelNewVort[i]; // Circulation of each vortex we release from the ith panel 
-    // Perhaps we need to put a debug switch and only then printing this
-    std::cout<<"Panel\t"<<i<<"\t will release \t"<<PanelNewVort[i]<<"\tvortex/vortices"<<" of "<<Circ_new[i]<<"\t strength"<<std::endl;
     }
     
     unsigned Nrv=arma::sum(PanelNewVort); //Number of the new vortices. 
@@ -574,8 +578,8 @@ void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices
         while (j<PanelNewVort[i])
         {
             //Find locations at the ith panel from which the vortices should be released
-            xm=xstart+m_vortsheet.ds[i]*m_vortsheet.theta[i]/PanelNewVort[i];
-            zm=zstart+m_vortsheet.ds[i]*m_vortsheet.theta[i]/PanelNewVort[i];
+            xm=xstart+m_vortsheet.ds[i]*m_vortsheet.etx[i]/(PanelNewVort[i]+1);
+            zm=zstart+m_vortsheet.ds[i]*m_vortsheet.etz[i]/(PanelNewVort[i]+1);
             //Here is the tricky bit !!! Morgenthal shows in figure 4.7 that the particles may be released with
             //some random walk in both the normal (to the panel) and the tangential directions. This is
             //wrong according to Chorin 1978. Since we are in the boundary layer, the diffusion process takes place only
@@ -588,8 +592,8 @@ void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices
             rrw=std::abs(std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R))); //This is half normal distribution only in the ourwards direction
 	        // Add the released vortex
             m_vortex.m_ID.push_back(m_vortex.m_ID.size() + 1); //add the id
-            x_vec(counter)=xm+rrw*sin(m_vortsheet.theta[i]);
-            z_vec(counter)=zm-rrw*cos(m_vortsheet.theta[i]);
+            x_vec(counter)=xm+rrw*m_vortsheet.enx[i];
+            z_vec(counter)=zm+rrw*m_vortsheet.enz[i];
             circ_vec(counter)=Circ_new[i];
             //Now for the cut-off kernel we implement things as suggested by Mirta Perlman 1985 (JCP)
             //using sigma=ds^q where 0.5<q<1. She suggests using q=0.625! This q parameter is the coefficient not the cutoff
@@ -612,7 +616,6 @@ void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices
 	        m_vortex.m_uvs.insert_rows(m_vortex.m_uvs.n_elem, Nrv, true);
 	        m_vortex.m_wvs.insert_rows(m_vortex.m_wvs.n_elem, Nrv, true);
 	        m_vortex.m_omega.insert_rows(m_vortex.m_omega.n_elem, Nrv, true); 
-
 }
 
 void DVMBase::reflect()

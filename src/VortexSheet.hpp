@@ -39,7 +39,7 @@ class VortexSheet
 	void resize(unsigned size);
 
 	/// Compute the forces on the body
-	void compute_loads();
+	void compute_loads(double Urel);
 
 	/// Number of vortex sheets
 	unsigned size();

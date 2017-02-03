@@ -26,16 +26,31 @@ void VortexSheet::resize(unsigned size)
 	etz.set_size(size);
 }
 
-void VortexSheet::compute_loads()
+void VortexSheet::compute_loads(double Urel)
 {
-	Vector p = -m_rho / m_dt * (gamma % ds);
+	Vector P(size());
+	Vector Dp = -m_rho / m_dt * (gamma % ds);
 
-	p(0) = 0;
+    for (unsigned i=0;i<size()-1;i++)
+    {
+        P(i+1)=P(i)+Dp(i);
+    }
+   
+    // Finding the average of the two pressures at the boundary
+    for (unsigned i=0;i<size()-1;i++)
+    {
+        P(i)=0.5*(P(i)+P(i+1));
+    }
 
-	m_fx = arma::sum(p % enx % ds);
-	m_fz = arma::sum(p % enz % ds);
+    P(size()-1)=0.5*(P(size()-1)+P(0));
+	double pmax=arma::max(P);
+    double pref=0.5*m_rho*Urel*Urel;
 
-	std::cout << "Fx = " << m_fx << " Fz = " << m_fz << std::endl;
+    P += (pref-pmax)*arma::ones(size(),1); 
+
+    m_fx = -arma::sum(P % enx % ds);
+	m_fz = -arma::sum(P % enz % ds);
+
 }
 
 unsigned VortexSheet::size()
