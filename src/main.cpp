@@ -109,6 +109,10 @@ int main(int argc, char *argv[])
 		double cpu_time;
 
 		start = clock();
+		
+        auto outdir = xml.getStringAttribute("io", "output_dir");
+		outdir = (outdir.back() == '/') ? outdir : outdir + '/';
+		xml.save(outdir + stamp + "_xml_in.xml");
 
 		/// Solve the problem
 		dvm.solve();
@@ -116,10 +120,6 @@ int main(int argc, char *argv[])
 		// output the cpu time on screen
 		cpu_time = (clock() - start) / (double)CLOCKS_PER_SEC;
 		std::cout << "Used CPU time is : " << cpu_time << std::endl;
-
-		auto outdir = xml.getStringAttribute("io", "output_dir");
-		outdir = (outdir.back() == '/') ? outdir : outdir + '/';
-		xml.save(outdir + stamp + "_xml_in.xml");
 
 	} catch (char *str) {
 		std::cout << "Exception thrown: " << str << std::endl;
