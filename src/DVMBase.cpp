@@ -5,7 +5,7 @@
 #include <time.h>
 #include <iostream>
 
-DVMBase::DVMBase(XmlHandler &xml) : m_vortex(xml), m_vortsheet(xml)
+DVMBase::DVMBase(XmlHandler &xml) : m_vortex(xml), m_vortsheet(xml), m_body(xml)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_step = 0;
@@ -108,36 +108,6 @@ void DVMBase::compute_step()
 	reflect();
 }
 
-void DVMBase::read_input_coord()
-{
-	// Read the body coordinates
-	std::string file = m_in_dir + m_domain_file;
-	std::string line;
-	std::ifstream coor_file(file.c_str());
-	double tmp1, tmp2;
-
-	if (coor_file.is_open()) {
-		while (coor_file.good()) {
-			std::getline(coor_file, line);
-			std::istringstream buffer(line);
-			buffer >> tmp1 >> tmp2;
-			m_body.x.push_back(tmp1);
-			m_body.z.push_back(tmp2);
-		}
-		m_body.x.pop_back();
-		m_body.z.pop_back();
-		std::cout << "Succesfully loaded coordinate file with " << m_body.size()
-		          << " points." << std::endl;
-		coor_file.close();
-		m_n = m_body.size();
-	} else {
-		std::string error_msg;
-		error_msg = "Unable to open coordinate file from " + file;
-		throw error_msg;
-	}
-
-	m_body.print_location();
-}
 
 void DVMBase::init_outputs()
 {
@@ -191,7 +161,7 @@ void DVMBase::init_outputs()
 void DVMBase::form_vortex_sheet()
 {
 	// Initialize vortex sheet
-	m_vortsheet.resize(m_n - 1);
+	m_vortsheet.resize(m_body.size() - 1);
 	double dx, dz, theta;
 
 	// Define the characteristics of the vortex sheet
@@ -242,7 +212,6 @@ void DVMBase::compute_influence_matrix()
 	// Compute influence matrix according to coefficients after Mogenthal
 	// =======================================================================
 
-	std::cout << "m_n = " << m_n << std::endl;
 	std::cout << "m_body.size() = " << m_body.size() << std::endl;
 	std::cout << "m_vortsheet.size() = " << m_vortsheet.size() << std::endl;
 
@@ -436,7 +405,6 @@ void DVMBase::solvevortexsheet(VortexBlobs &blobs)
 	// Solve system
 	m_vortsheet.gamma = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
 }
-
 
 void DVMBase::diffrw()
 {

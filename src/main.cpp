@@ -102,7 +102,6 @@ int main(int argc, char *argv[])
 		DVMBase dvm(xml);
 
 		dvm.init(xml, stamp);
-		dvm.read_input_coord();
 		dvm.init_outputs();
 
 		clock_t start;

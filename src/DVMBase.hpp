@@ -45,7 +45,6 @@ class DVMBase
 	double m_nu; ///< Kinematic viscosity
 	double m_Ux; ///< Free stream velocity in x
 	double m_Uz; ///< Free stream velocity in ym_n, m_np;
-	double m_n; ///< Number of body points
 
 	double m_kernel_threshold; ///< Kernel threshold
 	double m_sigma_cutoff;     ///< Cut-off distance
