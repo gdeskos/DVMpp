@@ -102,7 +102,7 @@ void DVMBase::compute_step()
     //This should not be here! This is just a test
 	double fx, fz;
 	std::tie(fx, fz) = m_vortsheet.get_forces();
-    std::cout<<"C_D = "<<fx/(0.5*m_rho*1.0*m_Ux*m_Ux)<<"\t"<<"C_L = "<<fz/(0.5*m_rho*1.0*m_Ux*m_Ux)<<std::endl;
+    std::cout<<"C_D = "<<fx/(0.5*m_rho*1.0*Urel*Urel)<<"\t"<<"C_L = "<<fz/(0.5*m_rho*1.0*Urel*Urel)<<std::endl;
 
 	convect();
     
