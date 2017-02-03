@@ -3,6 +3,7 @@
 
 #include "BaseTypes.hpp"
 #include "XmlHandler.hpp"
+#include "VortexBlobs.hpp"
 #include <iostream>
 #include <tuple>
 
@@ -29,6 +30,9 @@ class VortexSheet
 	double m_fx; ///< Force in x-direction
 	double m_fz; ///< Force in z-direction
 
+	double m_pi;   ///< pi
+	double m_rpi2; ///< 1 / (2pi)
+
 	public:
 	VortexSheet();
 
@@ -37,6 +41,11 @@ class VortexSheet
 	/// Resize all of the data members
 	/** \param size New size */
 	void resize(unsigned size);
+
+	/// Impose the vortex sheet boundary condition
+	/** Updates the blobs in place.
+	 * \param blobs vortex blobs to update */
+	void vortexsheetbc(VortexBlobs &blobs);
 
 	/// Compute the forces on the body
 	void compute_loads(double Urel);

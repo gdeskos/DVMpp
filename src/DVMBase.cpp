@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cassert>
 
-DVMBase::DVMBase(XmlHandler &xml) : m_vortex(xml), m_vortsheet(xml)
+DVMBase::DVMBase(XmlHandler &xml) : m_vortex(xml), m_vortsheet(xml), m_body(xml)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_step = 0;
@@ -94,7 +94,7 @@ void DVMBase::solve()
 void DVMBase::compute_step()
 {
 	// Inviscid Substep
-	solvevortexsheet();
+	solvevortexsheet(m_vortex);
 
     double Urel;
     Urel=std::sqrt(m_Ux*m_Ux+m_Uz*m_Uz);
@@ -115,36 +115,6 @@ void DVMBase::compute_step()
 	reflect();
 }
 
-void DVMBase::read_input_coord()
-{
-	// Read the body coordinates
-	std::string file = m_in_dir + m_domain_file;
-	std::string line;
-	std::ifstream coor_file(file.c_str());
-	double tmp1, tmp2;
-
-	if (coor_file.is_open()) {
-		while (coor_file.good()) {
-			std::getline(coor_file, line);
-			std::istringstream buffer(line);
-			buffer >> tmp1 >> tmp2;
-			m_body.x.push_back(tmp1);
-			m_body.z.push_back(tmp2);
-		}
-		m_body.x.pop_back();
-		m_body.z.pop_back();
-		std::cout << "Succesfully loaded coordinate file with " << m_body.size()
-		          << " points." << std::endl;
-		coor_file.close();
-		m_n = m_body.size();
-	} else {
-		std::string error_msg;
-		error_msg = "Unable to open coordinate file from " + file;
-		throw error_msg;
-	}
-
-	m_body.print_location();
-}
 
 void DVMBase::init_outputs()
 {
@@ -198,7 +168,7 @@ void DVMBase::init_outputs()
 void DVMBase::form_vortex_sheet()
 {
 	// Initialize vortex sheet
-	m_vortsheet.resize(m_n - 1);
+	m_vortsheet.resize(m_body.size() - 1);
 	double dx, dz, theta;
 
 	// Define the characteristics of the vortex sheet
@@ -255,7 +225,6 @@ void DVMBase::compute_influence_matrix()
 	// Compute influence matrix according to coefficients after Mogenthal
 	// =======================================================================
 
-	std::cout << "m_n = " << m_n << std::endl;
 	std::cout << "m_body.size() = " << m_body.size() << std::endl;
 	std::cout << "m_vortsheet.size() = " << m_vortsheet.size() << std::endl;
 
@@ -384,7 +353,7 @@ void DVMBase::convect()
 	switch (m_scheme) {
 	case Scheme::Euler:
 		m_vortex.biotsavart();
-		vortexsheetbc();
+		m_vortsheet.vortexsheetbc(m_vortex);
 
 		m_vortex.m_x += (m_vortex.m_u + m_vortex.m_uvs + m_Ux) * m_dt;
 		m_vortex.m_z += (m_vortex.m_w + m_vortex.m_wvs + m_Uz) * m_dt;
@@ -394,16 +363,16 @@ void DVMBase::convect()
 	}
 }
 
-void DVMBase::solvevortexsheet()
+void DVMBase::solvevortexsheet(VortexBlobs &blobs)
 {
 
 	unsigned Nl = m_vortsheet.size();
 
 	Vector brhs(Nl + 1);
 
-	if (m_vortex.size() == 0) {
+	if (blobs.size() == 0) {
 		brhs.rows(0, Nl - 1) = m_Ux * m_vortsheet.enx + m_Uz * m_vortsheet.enz;
-		brhs(Nl) = -m_vortex.totalcirc();
+		brhs(Nl) = -blobs.totalcirc();
 
 	} else {
 		Vector u(Nl);
@@ -417,15 +386,15 @@ void DVMBase::solvevortexsheet()
 			u(i) = 0.0;
 			w(i) = 0.0;
 
-			for (unsigned j = 0; j < m_vortex.size(); j++) {
+			for (unsigned j = 0; j < blobs.size(); j++) {
 
-				dx_ij = m_vortsheet.xc[i] - m_vortex.m_x[j];
-				dz_ij = m_vortsheet.zc[i] - m_vortex.m_z[j];
+				dx_ij = m_vortsheet.xc[i] - blobs.m_x(j);
+				dz_ij = m_vortsheet.zc[i] - blobs.m_z(j);
 				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
 				threshold =
-				    m_kernel_threshold * std::pow(m_vortex.m_sigma[j], 2);
-				rsigmasqr = 1.0 / std::pow(m_vortex.m_sigma[j], 2);
+				    m_kernel_threshold * std::pow(blobs.m_sigma(j), 2);
+				rsigmasqr = 1.0 / std::pow(blobs.m_sigma(j), 2);
 
 				if (dr_ij2 < threshold) {
 					dK_ij = (1.0 - std::exp(-dr_ij2 * rsigmasqr)) / dr_ij2;
@@ -433,8 +402,8 @@ void DVMBase::solvevortexsheet()
 					dK_ij = 1.0 / dr_ij2;
 				}
 
-				u(i) -= dK_ij * dz_ij * m_vortex.m_circ[j];
-				w(i) += dK_ij * dx_ij * m_vortex.m_circ[j];
+				u(i) -= dK_ij * dz_ij * blobs.m_circ(j);
+				w(i) += dK_ij * dx_ij * blobs.m_circ(j);
 			}
 		}
 
@@ -444,81 +413,11 @@ void DVMBase::solvevortexsheet()
 		// Not entirely convinced that this is the correct BC (see Morgenthal)
 		brhs.rows(0, Nl - 1) =
 		    (m_Ux + u) % m_vortsheet.enx + (m_Uz + w) % m_vortsheet.enz;
-		brhs(Nl) = -m_vortex.totalcirc();
+		brhs(Nl) = -blobs.totalcirc();
 	}
 
 	// Solve system
 	m_vortsheet.gamma = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
-}
-
-void DVMBase::vortexsheetbc()
-{
-	double c1, c2, c5, c6, c7, c8, c9;
-	Matrix px, py, qx, qy;
-
-	px.set_size(m_vortex.size(), m_vortsheet.size());
-	qx.set_size(m_vortex.size(), m_vortsheet.size());
-	py.set_size(m_vortex.size(), m_vortsheet.size());
-	qy.set_size(m_vortex.size(), m_vortsheet.size());
-
-// compute the coefficients
-	for (unsigned i = 0; i < m_vortex.size(); i++) {
-
-		double xi = m_vortex.m_x[i];
-		double zi = m_vortex.m_z[i];
-
-		for (unsigned j = 0; j < m_vortsheet.size(); j++) {
-
-			double xj = m_vortsheet.xc[j];
-			double zj = m_vortsheet.zc[j];
-			double thetaj = m_vortsheet.theta[j];
-			double dsj = m_vortsheet.ds[j];
-
-			c1 = -(xi - xj) * cos(thetaj) - (zi - zj) * sin(thetaj);
-			c2 = std::pow(xi - xj, 2.0) + std::pow(zi - zj, 2.0);
-			c5 = (xi - xj) * sin(thetaj) - (zi - zj) * cos(thetaj);
-			c6 = log(1.0 + dsj * ((dsj + 2 * c1) / c2));
-			c7 = atan2(c5 * dsj, c2 + c1 * dsj);
-			c8 =
-			    (xi - xj) * sin(-2.0 * thetaj) + (zi - zj) * cos(-2.0 * thetaj);
-			c9 =
-			    (xi - xj) * cos(-2.0 * thetaj) - (zi - zj) * sin(-2.0 * thetaj);
-
-			qx(i, j) = -sin(thetaj) + 0.5 * c8 * c6 / dsj
-			           + (c1 * cos(thetaj) + c5 * sin(thetaj)) * c7 / dsj;
-			px(i, j) = -0.5 * c6 * sin(thetaj) - c7 * cos(thetaj) - qx(i, j);
-
-			qy(i, j) = cos(thetaj) + 0.5 * c9 * c6 / dsj
-			           + (c1 * sin(thetaj) - c5 * cos(thetaj)) * c7 / dsj;
-			py(i, j) = 0.5 * c6 * cos(thetaj) - c7 * sin(thetaj) - qy(i, j);
-		}
-	}
-
-	// calculate the vortexsheet induced velocities
-	unsigned last = m_vortsheet.size() - 1;
-
-#pragma omp parallel for
-	for (unsigned i = 0; i < m_vortex.size(); i++) {
-
-		m_vortex.m_uvs[i] = 0.0;
-		m_vortex.m_wvs[i] = 0.0;
-
-		for (unsigned j = 0; j < m_vortsheet.size(); j++) {
-			if (j == last) {
-				m_vortex.m_uvs[i] += px(i, last) * m_vortsheet.gamma[last]
-				                   + qx(i, last) * m_vortsheet.gamma[0];
-				m_vortex.m_wvs[i] += py(i, last) * m_vortsheet.gamma[last]
-				                   + qy(i, last) * m_vortsheet.gamma[0];
-			} else {
-				m_vortex.m_uvs[i] += px(i, j) * m_vortsheet.gamma[j]
-				                   + qx(i, j) * m_vortsheet.gamma[j + 1];
-				m_vortex.m_wvs[i] += py(i, j) * m_vortsheet.gamma[j]
-				                   + qy(i, j) * m_vortsheet.gamma[j + 1];
-			}
-		}
-		m_vortex.m_uvs[i] *= m_rpi2;
-		m_vortex.m_wvs[i] *= m_rpi2;
-	}
 }
 
 void DVMBase::diffrw()

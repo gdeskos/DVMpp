@@ -45,7 +45,6 @@ class DVMBase
 	double m_nu; ///< Kinematic viscosity
 	double m_Ux; ///< Free stream velocity in x
 	double m_Uz; ///< Free stream velocity in ym_n, m_np;
-	double m_n; ///< Number of body points
 
 	double m_kernel_threshold;    ///< Kernel threshold
 	double m_cutoff_exp;          ///< Cut-off exponent q used in sigma=h^q according to Perlman 1985 (JCP, 1985,59, 200-223)
@@ -111,7 +110,7 @@ class DVMBase
 	void form_vortex_sheet();
 
 	/// Solve for the vortex sheet
-	void solvevortexsheet();
+	void solvevortexsheet(VortexBlobs &blobs);
 	///@}
 
 	/// Convect point vortices
@@ -160,9 +159,6 @@ class DVMBase
 	void solve();
 
 	private:
-	/// Compute the vortex sheet boundary condition
-	void vortexsheetbc();
-
 	/// Mirror a particle from one side of the boundary to the other
 	std::vector<double> mirror(double x_init,
 	                           double z_init,

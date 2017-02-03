@@ -6,8 +6,11 @@
 #include "pugixml.hpp"
 #include <fstream>
 #include <iostream>
+#include <sstream>
 #include <string>
-#include <time.h>
+#include <iomanip>
+#include <ctime>
+#include <chrono>
 #include <boost/program_options.hpp>
 
 int main(int argc, char *argv[])
@@ -67,59 +70,35 @@ int main(int argc, char *argv[])
 		std::cout << "Successfully loaded XML input file" << std::endl;
 
 		// Deal with time - this is horrible!
-		time_t rawtime;
-		struct tm *ptm;
-		time(&rawtime);
-		ptm = gmtime(&rawtime);
+		auto time = std::time(nullptr);
+		auto loctime = *std::localtime(&time);
 
-		std::ostringstream os;
-		os << ptm->tm_year + 1900 << "_";
-		if (ptm->tm_mon + 1 < 10) {
-			os << "0";
-		}
-		os << ptm->tm_mon + 1 << "_";
-		if (ptm->tm_mday < 10) {
-			os << "0";
-		}
-		os << ptm->tm_mday << "_";
-		if (ptm->tm_hour + 1 < 10) {
-			os << "0";
-		}
-		os << ptm->tm_hour + 1 << "_";
-		if (ptm->tm_min < 10) {
-			os << "0";
-		}
-		os << ptm->tm_min << "_";
-		if (ptm->tm_sec < 10) {
-			os << "0";
-		}
-		os << ptm->tm_sec;
-
-		std::string stamp = os.str();
-
-		std::cout << "File timestamp is " << os.str() << std::endl;
+		std::ostringstream oss;
+		oss << std::put_time(&loctime, "%Y_%m_%d_%H_%M_%S");
+		std::string stamp = oss.str();
+		std::cout << "File timestamp is " << stamp << std::endl;
 
 		DVMBase dvm(xml);
 
 		dvm.init(xml, stamp);
-		dvm.read_input_coord();
 		dvm.init_outputs();
 
-		clock_t start;
-		double cpu_time;
-
-		start = clock();
-		
         auto outdir = xml.getStringAttribute("io", "output_dir");
 		outdir = (outdir.back() == '/') ? outdir : outdir + '/';
 		xml.save(outdir + stamp + "_xml_in.xml");
+		auto start  = std::chrono::system_clock::now();
 
 		/// Solve the problem
 		dvm.solve();
 
 		// output the cpu time on screen
-		cpu_time = (clock() - start) / (double)CLOCKS_PER_SEC;
-		std::cout << "Used CPU time is : " << cpu_time << std::endl;
+		auto end = std::chrono::system_clock::now();
+		std::chrono::duration<double> elapsed = end - start;
+		std::cout << "\nRuntime : " << elapsed.count() << "s\n";
+
+		std::cout << "Timestamp : " << stamp << "\n";
+
+		std::cout << "Completed DVM computations succesfully" << std::endl;
 
 	} catch (char *str) {
 		std::cout << "Exception thrown: " << str << std::endl;
@@ -128,8 +107,6 @@ int main(int argc, char *argv[])
 	} catch (...) {
 		std::cout << "Unhandled exception type" << std::endl;
 	}
-
-	std::cout << "Completed DVM computations succesfully" << std::endl;
 
 	return 0;
 }
