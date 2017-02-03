@@ -111,7 +111,7 @@ void DVMBase::compute_step()
 	diffrw();        // A diffussion problem in an infinite domain
 
 	// Housekeeping
-    // For a large time step vortices may cross the boundary due to the random walk we reflect them back
+    // For a large time step vortices may cross the boundary due to random walk! We reflect them back
 	reflect();
 }
 
@@ -181,8 +181,8 @@ void DVMBase::init_outputs()
 	    (m_out_dir + m_timestamp + std::string("_loads.dat")).c_str());
 	dev_loads << "Time [s]"
 	          << " "
-	          << "\tFx [N]"
-	          << "\tFz [N]" << std::endl;
+	          << "\tC_x [-]"
+	          << "\tC_z [-]" << std::endl;
 
 	dev_probe.open(
 	    (m_out_dir + m_timestamp + std::string("_probe.dat")).c_str());
@@ -370,7 +370,8 @@ void DVMBase::write_outputs()
 
 	double fx, fz;
 	std::tie(fx, fz) = m_vortsheet.get_forces();
-	dev_loads << m_step << " " << fx << "\t" << fz << std::endl;
+	//dev_loads << m_step << " " << fx << "\t" << fz << std::endl;
+    dev_loads<<m_step<<"  "<<fx/(0.5*m_rho*1.0*m_Ux*m_Ux)<<"\t"<<fz/(0.5*m_rho*1.0*m_Ux*m_Ux)<<std::endl;
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
 		dev_probe << m_time << " " << m_probe.m_u[i] << " " << m_probe.m_w[i]
