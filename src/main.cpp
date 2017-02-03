@@ -8,6 +8,7 @@
 #include <iostream>
 #include <string>
 #include <time.h>
+#include <chrono>
 #include <boost/program_options.hpp>
 
 int main(int argc, char *argv[])
@@ -104,17 +105,15 @@ int main(int argc, char *argv[])
 		dvm.init(xml, stamp);
 		dvm.init_outputs();
 
-		clock_t start;
-		double cpu_time;
-
-		start = clock();
+		auto start  = std::chrono::system_clock::now();
 
 		/// Solve the problem
 		dvm.solve();
 
 		// output the cpu time on screen
-		cpu_time = (clock() - start) / (double)CLOCKS_PER_SEC;
-		std::cout << "Used CPU time is : " << cpu_time << std::endl;
+		auto end = std::chrono::system_clock::now();
+		std::chrono::duration<double> elapsed = end - start;
+		std::cout << "\nRuntime : " << elapsed.count() << "s\n";
 
 		auto outdir = xml.getStringAttribute("io", "output_dir");
 		outdir = (outdir.back() == '/') ? outdir : outdir + '/';
