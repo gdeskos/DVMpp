@@ -3,8 +3,11 @@
 
 #include "BaseTypes.hpp"
 #include "XmlHandler.hpp"
+#include "VortexBlobs.hpp"
+#include "Random.hpp"
 #include <iostream>
 #include <tuple>
+#include <cassert>
 
 /// VortexSheet describes the vortex sheet
 
@@ -25,7 +28,10 @@ class VortexSheet
 
 	private:
 	double m_rho; ///< Density of fluid
+    double m_nu;  ///< Kinematic viscosity of the fluid
 	double m_dt;  ///< Timestep
+    unsigned m_maxNumPanelVort; /// Maximum number of vortices allowed in each panel
+    double   m_cutoff_exp;      /// Cutoff distance coefficient q, according to Perlman 1985 0.5<q<1 
 	double m_fx; ///< Force in x-direction
 	double m_fz; ///< Force in z-direction
 
@@ -37,6 +43,23 @@ class VortexSheet
 	/// Resize all of the data members
 	/** \param size New size */
 	void resize(unsigned size);
+
+    /// Release nascent vortices from the vortexsheet using random walk
+    VortexBlobs release_nascent_vortices_rw(Random& _rand);
+   
+    /// Efficient Surface Algorithm for Random Walk (Smith and Stansby 1989, JCP paper)
+    void rw_surface_algorithm();
+
+    /// Find Inside the vortex sheet vortices
+    int inside_body(const double &xcoor, const double &zcoor);
+
+    /// Mirror the particle from a panel 
+    std::vector<double> mirror(const double &x_init,
+                               const double &z_init,
+                               const double &x_0,
+                               const double &z_0,
+                               const double &x_1,
+                               const double &z_1);
 
 	/// Compute the forces on the body
 	void compute_loads(double Urel);

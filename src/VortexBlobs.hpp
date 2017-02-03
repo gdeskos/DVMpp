@@ -33,6 +33,9 @@ class VortexBlobs
 	/// Constructor
 	/** \param xml input xml file*/
 	VortexBlobs(const XmlHandler &xml);
+    /// Constructor
+    /** \creates N number of vortices and sets them to zero*/
+    VortexBlobs(const unsigned& N);
 
     /// Amends vortexblobs
     void append_vortices(VortexBlobs &NewVortBlobs);
@@ -58,6 +61,9 @@ class VortexBlobs
 
 	/// Print the circulation of each vortex blob
 	void print_circulation();
+
+    /// Destructor
+    ~VortexBlobs();
 };
 
 #endif

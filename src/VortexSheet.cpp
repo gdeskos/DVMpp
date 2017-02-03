@@ -7,7 +7,10 @@ VortexSheet::VortexSheet()
 VortexSheet::VortexSheet(const XmlHandler &xml)
 {
 	m_rho = xml.getValueAttribute("constants", "density");
+	m_nu = xml.getValueAttribute("constants", "nu");
 	m_dt = xml.getValueAttribute("time", "dt");
+	m_maxNumPanelVort= xml.getValueAttribute("constants", "max_NumPanelVort");
+	m_cutoff_exp = xml.getValueAttribute("constants", "cutoff_exp");
 }
 
 
@@ -24,6 +27,122 @@ void VortexSheet::resize(unsigned size)
 	enz.set_size(size);
 	etx.set_size(size);
 	etz.set_size(size);
+}
+
+VortexBlobs VortexSheet::release_nascent_vortices_rw(Random& _rand)  
+{
+	//double x, z, circ, sigma;
+	auto Nvs = size();
+
+	double R, rrw;
+
+    // First we need to determine how many of these vortices will be created at each 
+    // panel. This is in accordance with Morgenthal PhD 4.3.6 Vortex release algorithm (eq. 4.108)
+    Vector_un PanelNewVort(Nvs);                            // Panel's new vortices
+    Vector PanelCirc = gamma%ds;    // Panel's total circulation
+    Vector AbsPanelCirc = arma::abs(PanelCirc/arma::max(PanelCirc)*m_maxNumPanelVort); // Absolute value of the panel vorticity   
+    Vector Circ_new(Nvs);
+    //GD---> Should not need to do a loop here. Unfortunately for some reason armadillo does not allow me to do 
+    //       PanelNewVort=arma::round(AbsPanelCirc)+arma::ones(Nvs,1), perhaps MAB can fix this. 
+    for (unsigned i=0;i<Nvs;i++)
+    {
+    PanelNewVort[i] = std::floor(AbsPanelCirc[i])+1; // Number of released vortices per panel
+    assert(PanelNewVort[i]>0);    
+    Circ_new[i]=PanelCirc[i]/PanelNewVort[i]; // Circulation of each vortex we release from the ith panel 
+    }
+    
+    unsigned Nrv=arma::sum(PanelNewVort); //Number of the new vortices. 
+    // if we set the maximum number of vortices from each panel=1, then Nrv=Nsv
+    
+    // Initialize the vortexblobs ready for release 
+    VortexBlobs nascentVort(Nrv);
+
+    //Calculating the position of the newelly released vortices
+    double xm,zm;
+    unsigned counter=0; 
+
+    for (unsigned i=0; i<Nvs;i++){
+        unsigned j=0;
+        while (j<PanelNewVort[i])
+        {
+            //Find locations at the ith panel from which the vortices should be released
+            xm=x[i]+ds[i]*etx[i]/(PanelNewVort[i]+1);
+            zm=z[i]+ds[i]*etz[i]/(PanelNewVort[i]+1);
+            //Here is the tricky bit !!! Morgenthal shows in figure 4.7 that the particles may be released with
+            //some random walk in both the normal (to the panel) and the tangential directions. This is
+            //wrong according to Chorin 1978. Since we are in the boundary layer, the diffusion process takes place only
+            //in the normal direction and not the streamwise. This also according to Prandtl's boundary layer approximation.
+            //I will implement the Chorin 1978 here and not the Morgenthal one. In the end, this should not make 
+            //a huge difference.
+        
+            //Create Random walk values
+            R=_rand.rand();
+            rrw=std::abs(std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R))); //This is half normal distribution only in the ourwards direction
+	        // Add the released vortex
+            nascentVort.m_x(counter)=xm+rrw*enx[i];
+            nascentVort.m_z(counter)=zm+rrw*enz[i];
+            nascentVort.m_circ(counter)=Circ_new[i];
+            //Now for the cut-off kernel we implement things as suggested by Mirta Perlman 1985 (JCP)
+            //using sigma=ds^q where 0.5<q<1. She suggests using q=0.625! This q parameter is the coefficient not the cutoff
+            //parameter the inputs file.
+            nascentVort.m_sigma(counter)=std::pow(ds[i],m_cutoff_exp);
+            counter++;
+            assert(counter<=Nrv);
+            j++;
+        }   
+            
+    }
+    return nascentVort;
+}
+
+void VortexSheet::rw_surface_algorithm()
+{
+
+}
+
+int VortexSheet::inside_body(const double& xcoor, const double& zcoor)
+{
+
+    // Checks whether a vortex is inside the body following the crossing rule method
+	// The algorithm reports the panel number that this particular vortex crossed 
+    // which is then used in the absorb algorithm if it is inside the body and gives 
+    // the satanic -666 if the goddam vortex is still free !!!
+
+    int cn = -666; 
+    for (unsigned i = 0; i < size(); i++) {
+		if (((z[i] <= zcoor) && (z[i + 1] > zcoor))
+		    || ((z[i] > zcoor) && (z[i + 1] <= zcoor))) {
+			float vt =
+			    (float)(zcoor - z[i]) / (z[i + 1] - z[i]);
+			if (xcoor < x[i] + vt * (x[i + 1] - x[i])) {
+				cn=i; //This the number of the panel that the particle crossed
+			}
+		}
+	}
+	return (cn);
+}
+
+std::vector<double> VortexSheet::mirror(const double &x_init,
+                                        const double &z_init,
+                                        const double &x_0,
+                                        const double &z_0,
+                                        const double &x_1,
+                                        const double &z_1)
+{
+	std::vector<double> p2;
+	p2.resize(2);
+	double dx, dz, a, b;
+
+	dx = x_1 - x_0;
+	dz = z_1 - z_0;
+
+	a = (dx * dx - dz * dz) / (dx * dx + dz * dz);
+	b = 2.0 * dx * dz / (dx * dx + dz * dz);
+
+	p2[0] = a * (x_init - x_0) + b * (z_init - z_0) + x_0;
+	p2[1] = b * (x_init - x_0) - a * (z_init - z_0) + z_0;
+
+	return p2;
 }
 
 void VortexSheet::compute_loads(double Urel)

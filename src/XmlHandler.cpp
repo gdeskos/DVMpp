@@ -174,7 +174,6 @@ void XmlHandler::buildOptionMap()
 	m_option_map.insert({"constants_density", {"constants", "density", "val", "specific gravity of fluid", ">0"}});
 	m_option_map.insert({"constants_nu", {"constants", "nu", "val", "kinematic viscosity [m^2 / s]", ">0"}});
 	m_option_map.insert({"constants_max_NumPanelVort", {"constants", "max_NumPanelVort", "val", "maximum number of panel vortices", ">0"}});
-	m_option_map.insert({"constants_kernel_threshold", {"constants", "kernel_threshold", "val", "kernel threshold", ">0"}});
 	m_option_map.insert({"constants_cutoff_exp", {"constants", "cutoff_exp", "val", "cutoff exp", "none"}});
 	m_option_map.insert({"constants_seed", {"constants", "seed", "val", "seed for rng. <0 random, >=0 seed", "none"}});
 
@@ -187,7 +186,7 @@ void XmlHandler::buildOptionMap()
 
 	m_option_map.insert({"probe_x", {"probe", "x", "val", "x-coordinate of the probe", "none"}});
 	m_option_map.insert({"probe_z", {"probe", "z", "val", "z-coordinate of the probe", "none"}});
-
+	
 	m_option_map.insert({"time_scheme", {"time", "scheme", "string", "time-stepping scheme", "euler RK2 RK4"}});
 	m_option_map.insert({"time_dt", {"time", "dt", "val", "time step [s]", ">0"}});
 	m_option_map.insert({"time_steps", {"time", "steps", "val", "total number of timesteps", ">0"}});

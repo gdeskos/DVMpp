@@ -38,9 +38,7 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 	m_rho = getVal("constants", "density");
 	m_nu = getVal("constants", "nu");
 	m_maxNumPanelVort = getVal("constants", "max_NumPanelVort");
-	m_kernel_threshold = getVal("constants", "kernel_threshold");
 	m_cutoff_exp = getVal("constants", "cutoff_exp");
-
 	// Need to find a way in the xml handler to deal with this too
 	if (m_cutoff_exp >= 1 ) {
 		throw std::string(
@@ -107,8 +105,12 @@ void DVMBase::compute_step()
 	convect();
     
     // The diffusion substep is split into two steps
-    diffuse_vs_rw(); // A diffussion problem with only a flux of vorticity in the boundaries dgamma/dn=a
-	diffrw();        // A diffussion problem in an infinite domain
+    // A diffussion problem with only a flux of vorticity in the boundaries dgamma/dn=a 
+    VortexBlobs NewVortices=m_vortsheet.release_nascent_vortices_rw(m_rand); 
+    std::cout<<NewVortices.size()<<std::endl;
+    m_vortex.append_vortices(NewVortices); 
+
+	diffrw();                    // A diffussion problem in an infinite domain
 
 	// Housekeeping
     // For a large time step vortices may cross the boundary due to random walk! We reflect them back
@@ -424,7 +426,7 @@ void DVMBase::solvevortexsheet()
 				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
 				threshold =
-				    m_kernel_threshold * std::pow(m_vortex.m_sigma[j], 2);
+				    10*std::pow(m_vortex.m_sigma[j], 2);
 				rsigmasqr = 1.0 / std::pow(m_vortex.m_sigma[j], 2);
 
 				if (dr_ij2 < threshold) {
@@ -748,7 +750,7 @@ void DVMBase::probe_velocities()
 			dz_ij = z_i - m_vortex.m_z(j);
 			dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
-			threshold = m_kernel_threshold * std::pow(m_vortex.m_sigma(j), 2);
+			threshold = 10 * std::pow(m_vortex.m_sigma(j), 2);
 			rsigmasqr = 1.0 / std::pow(m_vortex.m_sigma(j), 2);
 
 			if (dr_ij2 < threshold) {
