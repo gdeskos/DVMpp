@@ -34,7 +34,10 @@ class VortexBlobs
 	/** \param xml input xml file*/
 	VortexBlobs(const XmlHandler &xml);
 
-	/// Biot-Savart relationship
+    /// Amends vortexblobs
+    void append_vortices(VortexBlobs &NewVortBlobs);
+    
+    /// Biot-Savart relationship
 	void biotsavart();
 
 	/// Find the total circulation
