@@ -107,10 +107,9 @@ void DVMBase::compute_step()
     // The diffusion substep is split into two steps
     // A diffussion problem with only a flux of vorticity in the boundaries dgamma/dn=a 
     VortexBlobs NewVortices=m_vortsheet.release_nascent_vortices_rw(m_rand); 
-    std::cout<<NewVortices.size()<<std::endl;
     m_vortex.append_vortices(NewVortices); 
 
-	diffrw();                    // A diffussion problem in an infinite domain
+	m_vortex.diffusion_random_walk(m_rand,m_nu,m_dt); // A diffussion problem in an infinite domain
 
 	// Housekeeping
     // For a large time step vortices may cross the boundary due to random walk! We reflect them back
@@ -540,85 +539,6 @@ void DVMBase::diffrw()
 		m_vortex.m_x[i] += rrw * cos(thetarw);
 		m_vortex.m_z[i] += rrw * sin(thetarw);
 	}
-}
-
-void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices 
-{
-	//double x, z, circ, sigma;
-	auto Nvs = m_vortsheet.size();
-
-	double R, rrw;
-
-    // First we need to determine how many of these vortices will be created at each 
-    // panel. This is in accordance with Morgenthal PhD 4.3.6 Vortex release algorithm (eq. 4.108)
-    Vector_un PanelNewVort(Nvs);                            // Panel's new vortices
-    Vector PanelCirc = m_vortsheet.gamma%m_vortsheet.ds;    // Panel's total circulation
-    Vector AbsPanelCirc = arma::abs(PanelCirc/arma::max(PanelCirc)*m_maxNumPanelVort); // Absolute value of the panel vorticity   
-    Vector Circ_new(Nvs);
-    //GD---> Should not need to do a loop here. Unfortunately for some reason armadillo does not allow me to do 
-    //       PanelNewVort=arma::round(AbsPanelCirc)+arma::ones(Nvs,1), perhaps MAB can fix this. 
-    for (unsigned i=0;i<Nvs;i++)
-    {
-    PanelNewVort[i] = std::floor(AbsPanelCirc[i])+1; // Number of released vortices per panel
-    assert(PanelNewVort[i]>0);    
-    Circ_new[i]=PanelCirc[i]/PanelNewVort[i]; // Circulation of each vortex we release from the ith panel 
-    }
-    
-    unsigned Nrv=arma::sum(PanelNewVort); //Number of the new vortices. 
-    // if we set the maximum number of vortices from each panel=1, then Nrv=Nsv
-    Vector x_vec(Nrv);
-	Vector z_vec(Nrv);
-	Vector circ_vec(Nrv);
-	Vector sigma_vec(Nrv); 
-    unsigned counter=0; 
-
-    //Calculating the position of the newelly released vortices
-    double xstart,zstart,xm,zm;
-
-    for (unsigned i=0; i<Nvs;i++){
-        xstart=m_vortsheet.x[i];zstart=m_vortsheet.z[i]; // Coordinates for the start point of the panel
-        unsigned j=0;
-        while (j<PanelNewVort[i])
-        {
-            //Find locations at the ith panel from which the vortices should be released
-            xm=xstart+m_vortsheet.ds[i]*m_vortsheet.etx[i]/(PanelNewVort[i]+1);
-            zm=zstart+m_vortsheet.ds[i]*m_vortsheet.etz[i]/(PanelNewVort[i]+1);
-            //Here is the tricky bit !!! Morgenthal shows in figure 4.7 that the particles may be released with
-            //some random walk in both the normal (to the panel) and the tangential directions. This is
-            //wrong according to Chorin 1978. Since we are in the boundary layer, the diffusion process takes place only
-            //in the normal direction and not the streamwise. This also according to Prandtl's boundary layer approximation.
-            //I will implement the Chorin 1978 here and not the Morgenthal one. In the end, this should not make 
-            //a huge difference.
-        
-            //Create Random walk values
-            R=m_rand.rand();
-            rrw=std::abs(std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R))); //This is half normal distribution only in the ourwards direction
-	        // Add the released vortex
-            m_vortex.m_ID.push_back(m_vortex.m_ID.size() + 1); //add the id
-            x_vec(counter)=xm+rrw*m_vortsheet.enx[i];
-            z_vec(counter)=zm+rrw*m_vortsheet.enz[i];
-            circ_vec(counter)=Circ_new[i];
-            //Now for the cut-off kernel we implement things as suggested by Mirta Perlman 1985 (JCP)
-            //using sigma=ds^q where 0.5<q<1. She suggests using q=0.625! This q parameter is the coefficient not the cutoff
-            //parameter the inputs file.
-            sigma_vec(counter)=std::pow(m_vortsheet.ds[i],m_cutoff_exp);
-            counter++;
-            assert(counter<=Nrv);
-            j++;
-        }   
-            
-    }
-	        m_vortex.m_x.insert_rows(m_vortex.m_x.n_elem, x_vec);
-	        m_vortex.m_z.insert_rows(m_vortex.m_z.n_elem, z_vec);
-	        m_vortex.m_circ.insert_rows(m_vortex.m_circ.n_elem, circ_vec);
-	        m_vortex.m_sigma.insert_rows(m_vortex.m_sigma.n_elem, sigma_vec);
-            
-            //And then we initialize everything else to zero
-	        m_vortex.m_u.insert_rows(m_vortex.m_u.n_elem, Nrv, true);
-	        m_vortex.m_w.insert_rows(m_vortex.m_w.n_elem, Nrv, true);
-	        m_vortex.m_uvs.insert_rows(m_vortex.m_uvs.n_elem, Nrv, true);
-	        m_vortex.m_wvs.insert_rows(m_vortex.m_wvs.n_elem, Nrv, true);
-	        m_vortex.m_omega.insert_rows(m_vortex.m_omega.n_elem, Nrv, true); 
 }
 
 void DVMBase::reflect()

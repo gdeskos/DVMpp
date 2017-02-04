@@ -122,10 +122,6 @@ class DVMBase
 	/// Move the point vortices using the random walk
 	void diffrw();
 
-	/// Generate vorticity on the boundary and release into the flow
-	void diffuse_vs_rw();
-	///@}
-
 	/// Reflect particles generated released inside the body outside
 	void reflect();
 

@@ -12,7 +12,6 @@ VortexBlobs::VortexBlobs(const XmlHandler &xml)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_rpi2 = 1.0 / (2.0 * m_pi);
-
 }
 
 
@@ -93,6 +92,28 @@ void VortexBlobs::biotsavart()
 		m_w(i) *= m_rpi2;
 	}
 }
+
+void VortexBlobs::diffusion_random_walk(Random& _rand, 
+                                        const double & nu,
+                                        const double & dt)
+{
+	double R1, R2, rrw, thetarw;
+
+	for (unsigned i = 0; i < size(); i++) {
+
+		// Generate two random numbers in the range 0...1
+		R1 = _rand.rand();
+		R2 = _rand.rand();
+
+		// Calculate r and theta for the random walk
+		rrw = std::sqrt(4.0 * nu * dt * std::log(1.0 / R1));
+		thetarw = 2.0 * m_pi * R2;
+
+		m_x[i] += rrw * cos(thetarw);
+		m_z[i] += rrw * sin(thetarw);
+	}
+}
+
 
 double VortexBlobs::totalcirc()
 {
