@@ -42,15 +42,15 @@ void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
 // compute the coefficients
 	for (unsigned i = 0; i < blobs.size(); i++) {
 
-		double xi = blobs.m_x[i];
-		double zi = blobs.m_z[i];
+		double xi = blobs.m_x(i);
+		double zi = blobs.m_z(i);
 
 		for (unsigned j = 0; j < size(); j++) {
 
-			double xj = m_xc[j];
-			double zj = m_zc[j];
-			double thetaj = m_theta[j];
-			double dsj = m_ds[j];
+			double xj = m_xc(j);
+			double zj = m_zc(j);
+			double thetaj = m_theta(j);
+			double dsj = m_ds(j);
 
 			c1 = -(xi - xj) * cos(thetaj) - (zi - zj) * sin(thetaj);
 			c2 = std::pow(xi - xj, 2.0) + std::pow(zi - zj, 2.0);
@@ -78,24 +78,24 @@ void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
 #pragma omp parallel for
 	for (unsigned i = 0; i < blobs.size(); i++) {
 
-		blobs.m_uvs[i] = 0.0;
-		blobs.m_wvs[i] = 0.0;
+		blobs.m_uvs(i) = 0.0;
+		blobs.m_wvs(i) = 0.0;
 
 		for (unsigned j = 0; j < size(); j++) {
 			if (j == last) {
-				blobs.m_uvs[i] += px(i, last) * m_gamma[last]
-				                   + qx(i, last) * m_gamma[0];
-				blobs.m_wvs[i] += py(i, last) * m_gamma[last]
-				                   + qy(i, last) * m_gamma[0];
+				blobs.m_uvs(i) += px(i, last) * m_gamma(last)
+				                   + qx(i, last) * m_gamma(0);
+				blobs.m_wvs(i) += py(i, last) * m_gamma(last)
+				                   + qy(i, last) * m_gamma(0);
 			} else {
-				blobs.m_uvs[i] += px(i, j) * m_gamma[j]
-				                   + qx(i, j) * m_gamma[j + 1];
-				blobs.m_wvs[i] += py(i, j) * m_gamma[j]
-				                   + qy(i, j) * m_gamma[j + 1];
+				blobs.m_uvs(i) += px(i, j) * m_gamma(j)
+				                   + qx(i, j) * m_gamma(j + 1);
+				blobs.m_wvs(i) += py(i, j) * m_gamma(j)
+				                   + qy(i, j) * m_gamma(j + 1);
 			}
 		}
-		blobs.m_uvs[i] *= m_rpi2;
-		blobs.m_wvs[i] *= m_rpi2;
+		blobs.m_uvs(i) *= m_rpi2;
+		blobs.m_wvs(i) *= m_rpi2;
 	}
 }
 
