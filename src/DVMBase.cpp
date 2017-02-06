@@ -175,22 +175,22 @@ void DVMBase::form_vortex_sheet()
 	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
         
         // Assign the body points to the vortsheet, remember this is m_vortsheet.size()+1
-		m_vortsheet.x[i]=m_body.x[i];
-		m_vortsheet.z[i]=m_body.z[i];
-		m_vortsheet.x[i+1]=m_body.x[i+1];
-		m_vortsheet.z[i+1]=m_body.z[i+1];
+		m_vortsheet.m_x[i]=m_body.x[i];
+		m_vortsheet.m_z[i]=m_body.z[i];
+		m_vortsheet.m_x[i+1]=m_body.x[i+1];
+		m_vortsheet.m_z[i+1]=m_body.z[i+1];
         
         // collocation points on the vortex sheet
-		m_vortsheet.xc[i] = 0.5 * (m_body.x[i] + m_body.x[i + 1]);
-		m_vortsheet.zc[i] = 0.5 * (m_body.z[i] + m_body.z[i + 1]);
+		m_vortsheet.m_xc[i] = 0.5 * (m_body.x[i] + m_body.x[i + 1]);
+		m_vortsheet.m_zc[i] = 0.5 * (m_body.z[i] + m_body.z[i + 1]);
 
 		// ds and theta along the vortex sheet
 		dx = m_body.x[i + 1] - m_body.x[i];
 		dz = m_body.z[i + 1] - m_body.z[i];
 		theta = atan2(dz, dx);
 
-		m_vortsheet.ds[i] = std::sqrt(std::pow(dx, 2) + std::pow(dz, 2));
-		m_vortsheet.theta[i] = theta;
+		m_vortsheet.m_ds[i] = std::sqrt(std::pow(dx, 2) + std::pow(dz, 2));
+		m_vortsheet.m_theta[i] = theta;
 
 		// normals and tangentials
 
@@ -201,10 +201,10 @@ void DVMBase::form_vortex_sheet()
 		// m_vortsheet.enz[i] = m_vortsheet.etx[i];
 
 		// Outwards facing
-		m_vortsheet.enx[i] = dz / m_vortsheet.ds[i];
-		m_vortsheet.enz[i] = -dx / m_vortsheet.ds[i];
-		m_vortsheet.etx[i] = -m_vortsheet.enz[i];
-		m_vortsheet.etz[i] = m_vortsheet.enx[i];
+		m_vortsheet.m_enx[i] = dz / m_vortsheet.m_ds[i];
+		m_vortsheet.m_enz[i] = -dx / m_vortsheet.m_ds[i];
+		m_vortsheet.m_etx[i] = -m_vortsheet.m_enz[i];
+		m_vortsheet.m_etz[i] = m_vortsheet.m_enx[i];
 	}
 
 	// m_Gamma_abs.resize(m_vortsheet.size());
@@ -243,9 +243,9 @@ void DVMBase::compute_influence_matrix()
 
 	for (unsigned i = 0; i < Nl; i++) {
 
-		double xci = m_vortsheet.xc[i];
-		double zci = m_vortsheet.zc[i];
-		double thetai = m_vortsheet.theta[i];
+		double xci = m_vortsheet.m_xc[i];
+		double zci = m_vortsheet.m_zc[i];
+		double thetai = m_vortsheet.m_theta[i];
 
 		for (unsigned j = 0; j < Nl; j++) {
 			if (i == j) {
@@ -255,9 +255,9 @@ void DVMBase::compute_influence_matrix()
 
 				double xj = m_body.x[j];
 				double zj = m_body.z[j];
-				double thetaj = m_vortsheet.theta[j];
+				double thetaj = m_vortsheet.m_theta[j];
 
-				double dsj = m_vortsheet.ds[j];
+				double dsj = m_vortsheet.m_ds[j];
 
 				c1 = -(xci - xj) * cos(thetaj) - (zci - zj) * sin(thetaj);
 				c2 = std::pow(xci - xj, 2) + std::pow(zci - zj, 2);
@@ -286,7 +286,7 @@ void DVMBase::compute_influence_matrix()
 
 	// Enforcing the total circulation
 	for (unsigned j = 0; j < Nl; j++) {
-		m_infM(Nl, j) = m_vortsheet.ds[j];
+		m_infM(Nl, j) = m_vortsheet.m_ds[j];
 	}
 
 	// Print the matrix
@@ -332,9 +332,9 @@ void DVMBase::write_outputs()
 	dev_Num << m_step << " " << m_vortex.size() << std::endl;
 
 	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
-		dev_gamma << m_time << "\t " << m_vortsheet.xc[i] << "\t "
-		          << m_vortsheet.zc[i] << " " << m_vortsheet.gamma[i] << "\t"
-		          << m_vortsheet.ds[i] << std::endl;
+		dev_gamma << m_time << "\t " << m_vortsheet.m_xc[i] << "\t "
+		          << m_vortsheet.m_zc[i] << " " << m_vortsheet.m_gamma[i] << "\t"
+		          << m_vortsheet.m_ds[i] << std::endl;
 	}
 
 	double fx, fz;
@@ -371,7 +371,7 @@ void DVMBase::solvevortexsheet(VortexBlobs &blobs)
 	Vector brhs(Nl + 1);
 
 	if (blobs.size() == 0) {
-		brhs.rows(0, Nl - 1) = m_Ux * m_vortsheet.enx + m_Uz * m_vortsheet.enz;
+		brhs.rows(0, Nl - 1) = m_Ux * m_vortsheet.m_enx + m_Uz * m_vortsheet.m_enz;
 		brhs(Nl) = -blobs.totalcirc();
 
 	} else {
@@ -388,8 +388,8 @@ void DVMBase::solvevortexsheet(VortexBlobs &blobs)
 
 			for (unsigned j = 0; j < blobs.size(); j++) {
 
-				dx_ij = m_vortsheet.xc[i] - blobs.m_x(j);
-				dz_ij = m_vortsheet.zc[i] - blobs.m_z(j);
+				dx_ij = m_vortsheet.m_xc[i] - blobs.m_x(j);
+				dz_ij = m_vortsheet.m_zc[i] - blobs.m_z(j);
 				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
 				threshold =
@@ -412,12 +412,12 @@ void DVMBase::solvevortexsheet(VortexBlobs &blobs)
 
 		// Not entirely convinced that this is the correct BC (see Morgenthal)
 		brhs.rows(0, Nl - 1) =
-		    (m_Ux + u) % m_vortsheet.enx + (m_Uz + w) % m_vortsheet.enz;
+		    (m_Ux + u) % m_vortsheet.m_enx + (m_Uz + w) % m_vortsheet.m_enz;
 		brhs(Nl) = -blobs.totalcirc();
 	}
 
 	// Solve system
-	m_vortsheet.gamma = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
+	m_vortsheet.m_gamma = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
 }
 
 void DVMBase::diffrw()
@@ -449,7 +449,7 @@ void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices
     // First we need to determine how many of these vortices will be created at each 
     // panel. This is in accordance with Morgenthal PhD 4.3.6 Vortex release algorithm (eq. 4.108)
     Vector_un PanelNewVort(Nvs);                            // Panel's new vortices
-    Vector PanelCirc = m_vortsheet.gamma%m_vortsheet.ds;    // Panel's total circulation
+    Vector PanelCirc = m_vortsheet.m_gamma%m_vortsheet.m_ds;    // Panel's total circulation
     Vector AbsPanelCirc = arma::abs(PanelCirc/arma::max(PanelCirc)*m_maxNumPanelVort); // Absolute value of the panel vorticity   
     Vector Circ_new(Nvs);
     //GD---> Should not need to do a loop here. Unfortunately for some reason armadillo does not allow me to do 
@@ -473,13 +473,13 @@ void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices
     double xstart,zstart,xm,zm;
 
     for (unsigned i=0; i<Nvs;i++){
-        xstart=m_vortsheet.x[i];zstart=m_vortsheet.z[i]; // Coordinates for the start point of the panel
+        xstart=m_vortsheet.m_x[i];zstart=m_vortsheet.m_z[i]; // Coordinates for the start point of the panel
         unsigned j=0;
         while (j<PanelNewVort[i])
         {
             //Find locations at the ith panel from which the vortices should be released
-            xm=xstart+m_vortsheet.ds[i]*m_vortsheet.etx[i]/(PanelNewVort[i]+1);
-            zm=zstart+m_vortsheet.ds[i]*m_vortsheet.etz[i]/(PanelNewVort[i]+1);
+            xm=xstart+m_vortsheet.m_ds[i]*m_vortsheet.m_etx[i]/(PanelNewVort[i]+1);
+            zm=zstart+m_vortsheet.m_ds[i]*m_vortsheet.m_etz[i]/(PanelNewVort[i]+1);
             //Here is the tricky bit !!! Morgenthal shows in figure 4.7 that the particles may be released with
             //some random walk in both the normal (to the panel) and the tangential directions. This is
             //wrong according to Chorin 1978. Since we are in the boundary layer, the diffusion process takes place only
@@ -492,13 +492,13 @@ void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices
             rrw=std::abs(std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R))); //This is half normal distribution only in the ourwards direction
 	        // Add the released vortex
             m_vortex.m_ID.push_back(m_vortex.m_ID.size() + 1); //add the id
-            x_vec(counter)=xm+rrw*m_vortsheet.enx[i];
-            z_vec(counter)=zm+rrw*m_vortsheet.enz[i];
+            x_vec(counter)=xm+rrw*m_vortsheet.m_enx[i];
+            z_vec(counter)=zm+rrw*m_vortsheet.m_enz[i];
             circ_vec(counter)=Circ_new[i];
             //Now for the cut-off kernel we implement things as suggested by Mirta Perlman 1985 (JCP)
             //using sigma=ds^q where 0.5<q<1. She suggests using q=0.625! This q parameter is the coefficient not the cutoff
             //parameter the inputs file.
-            sigma_vec(counter)=std::pow(m_vortsheet.ds[i],m_cutoff_exp);
+            sigma_vec(counter)=std::pow(m_vortsheet.m_ds[i],m_cutoff_exp);
             counter++;
             assert(counter<=Nrv);
             j++;
@@ -542,8 +542,8 @@ void DVMBase::reflect()
 			min_prev = 10E6;
 			for (unsigned j = 0; j < m_vortsheet.size(); j++) {
 
-				dx = m_vortsheet.xc[j] - m_vortex.m_x(i);
-				dz = m_vortsheet.zc[j] - m_vortex.m_z(i);
+				dx = m_vortsheet.m_xc[j] - m_vortex.m_x(i);
+				dz = m_vortsheet.m_zc[j] - m_vortex.m_z(i);
 				dr = std::sqrt(std::pow(dx, 2.0) + std::pow(dz, 2.0));
 
 				if (dr < min_prev) {
@@ -680,58 +680,58 @@ void DVMBase::probe_velocities()
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
 		for (unsigned j = 1; j < m_vortsheet.size(); j++) {
-			c1 = -(m_probe.m_x[i] - m_vortsheet.xc[j]) * cos(m_vortsheet.theta[j])
-			     - (m_probe.m_z[i] - m_vortsheet.zc[j])
-			           * sin(m_vortsheet.theta[j]);
-			c2 = std::pow((m_probe.m_x[i] - m_vortsheet.xc[j]), 2)
-			     + std::pow((m_probe.m_z[i] - m_vortsheet.zc[j]), 2);
-			c5 = (m_probe.m_x[i] - m_vortsheet.xc[j]) * sin(m_vortsheet.theta[j])
-			     - (m_probe.m_z[i] - m_vortsheet.zc[j])
-			           * cos(m_vortsheet.theta[j]);
+			c1 = -(m_probe.m_x[i] - m_vortsheet.m_xc[j]) * cos(m_vortsheet.m_theta[j])
+			     - (m_probe.m_z[i] - m_vortsheet.m_zc[j])
+			           * sin(m_vortsheet.m_theta[j]);
+			c2 = std::pow((m_probe.m_x[i] - m_vortsheet.m_xc[j]), 2)
+			     + std::pow((m_probe.m_z[i] - m_vortsheet.m_zc[j]), 2);
+			c5 = (m_probe.m_x[i] - m_vortsheet.m_xc[j]) * sin(m_vortsheet.m_theta[j])
+			     - (m_probe.m_z[i] - m_vortsheet.m_zc[j])
+			           * cos(m_vortsheet.m_theta[j]);
 			c6 = log(1.0
-			         + m_vortsheet.ds[j] * ((m_vortsheet.ds[j] + 2 * c1) / c2));
-			c7 = atan2((c5 * m_vortsheet.ds[j]), (c2 + c1 * m_vortsheet.ds[j]));
-			c8 = (m_probe.m_x[i] - m_vortsheet.xc[j])
-			         * sin(-2.0 * m_vortsheet.theta[j])
-			     + (m_probe.m_z[i] - m_vortsheet.zc[j])
-			           * cos(-2.0 * m_vortsheet.theta[j]);
-			c9 = (m_probe.m_x[i] - m_vortsheet.xc[j])
-			         * cos(-2.0 * m_vortsheet.theta[j])
-			     + (m_probe.m_z[i] - m_vortsheet.zc[j])
-			           * sin(-2.0 * m_vortsheet.theta[j]);
+			         + m_vortsheet.m_ds[j] * ((m_vortsheet.m_ds[j] + 2 * c1) / c2));
+			c7 = atan2((c5 * m_vortsheet.m_ds[j]), (c2 + c1 * m_vortsheet.m_ds[j]));
+			c8 = (m_probe.m_x[i] - m_vortsheet.m_xc[j])
+			         * sin(-2.0 * m_vortsheet.m_theta[j])
+			     + (m_probe.m_z[i] - m_vortsheet.m_zc[j])
+			           * cos(-2.0 * m_vortsheet.m_theta[j]);
+			c9 = (m_probe.m_x[i] - m_vortsheet.m_xc[j])
+			         * cos(-2.0 * m_vortsheet.m_theta[j])
+			     + (m_probe.m_z[i] - m_vortsheet.m_zc[j])
+			           * sin(-2.0 * m_vortsheet.m_theta[j]);
 
-			qx(i, j) = -sin(m_vortsheet.theta[j])
-			           + 0.5 * c8 * c6 / m_vortsheet.ds[j]
-			           + (c1 * cos(m_vortsheet.theta[j])
-			              + c5 * sin(m_vortsheet.theta[j]))
-			                 * c7 / m_vortsheet.ds[j];
-			px(i, j) = -0.5 * c6 * sin(m_vortsheet.theta[j])
-			           - c7 * cos(m_vortsheet.theta[j]) - qx(i, j);
+			qx(i, j) = -sin(m_vortsheet.m_theta[j])
+			           + 0.5 * c8 * c6 / m_vortsheet.m_ds[j]
+			           + (c1 * cos(m_vortsheet.m_theta[j])
+			              + c5 * sin(m_vortsheet.m_theta[j]))
+			                 * c7 / m_vortsheet.m_ds[j];
+			px(i, j) = -0.5 * c6 * sin(m_vortsheet.m_theta[j])
+			           - c7 * cos(m_vortsheet.m_theta[j]) - qx(i, j);
 
-			qy(i, j) = cos(m_vortsheet.theta[j])
-			           + 0.5 * c9 * c6 / m_vortsheet.ds[j]
-			           + (c1 * cos(m_vortsheet.theta[j])
-			              - c5 * sin(m_vortsheet.theta[j]))
-			                 * c7 / m_vortsheet.ds[j];
-			py(i, j) = -0.5 * c6 * cos(m_vortsheet.theta[j])
-			           - c7 * sin(m_vortsheet.theta[j]) - qy(i, j);
+			qy(i, j) = cos(m_vortsheet.m_theta[j])
+			           + 0.5 * c9 * c6 / m_vortsheet.m_ds[j]
+			           + (c1 * cos(m_vortsheet.m_theta[j])
+			              - c5 * sin(m_vortsheet.m_theta[j]))
+			                 * c7 / m_vortsheet.m_ds[j];
+			py(i, j) = -0.5 * c6 * cos(m_vortsheet.m_theta[j])
+			           - c7 * sin(m_vortsheet.m_theta[j]) - qy(i, j);
 
 			if (j == m_vortsheet.size() - 1) {
 
 				m_probe.m_uvs[i] =
 				    (px(i, m_vortsheet.size() - 1)
-				         * m_vortsheet.gamma[m_vortsheet.size() - 1]
-				     + qx(i, m_vortsheet.size() - 1) * m_vortsheet.gamma[0]);
+				         * m_vortsheet.m_gamma[m_vortsheet.size() - 1]
+				     + qx(i, m_vortsheet.size() - 1) * m_vortsheet.m_gamma[0]);
 				m_probe.m_wvs[i] =
 				    (py(i, m_vortsheet.size() - 1)
-				         * m_vortsheet.gamma[m_vortsheet.size() - 1]
-				     - qy(i, m_vortsheet.size() - 1) * m_vortsheet.gamma[0]);
+				         * m_vortsheet.m_gamma[m_vortsheet.size() - 1]
+				     - qy(i, m_vortsheet.size() - 1) * m_vortsheet.m_gamma[0]);
 
 			} else {
-				m_probe.m_uvs[i] = (px(i, j) * m_vortsheet.gamma[j]
-				                  + qx(i, j) * m_vortsheet.gamma[j + 1]);
-				m_probe.m_wvs[i] = (py(i, j) * m_vortsheet.gamma[j]
-				                  + qy(i, j) * m_vortsheet.gamma[j + 1]);
+				m_probe.m_uvs[i] = (px(i, j) * m_vortsheet.m_gamma[j]
+				                  + qx(i, j) * m_vortsheet.m_gamma[j + 1]);
+				m_probe.m_wvs[i] = (py(i, j) * m_vortsheet.m_gamma[j]
+				                  + qy(i, j) * m_vortsheet.m_gamma[j + 1]);
 			}
 		}
 	}

@@ -16,17 +16,17 @@ VortexSheet::VortexSheet(const XmlHandler &xml)
 
 void VortexSheet::resize(unsigned size)
 {
-	gamma.set_size(size);
-	x.set_size(size+1);
-	z.set_size(size+1);
-	xc.set_size(size);
-	zc.set_size(size);
-	theta.set_size(size);
-	ds.set_size(size);
-	enx.set_size(size);
-	enz.set_size(size);
-	etx.set_size(size);
-	etz.set_size(size);
+	m_gamma.set_size(size);
+	m_x.set_size(size+1);
+	m_z.set_size(size+1);
+	m_xc.set_size(size);
+	m_zc.set_size(size);
+	m_theta.set_size(size);
+	m_ds.set_size(size);
+	m_enx.set_size(size);
+	m_enz.set_size(size);
+	m_etx.set_size(size);
+	m_etz.set_size(size);
 }
 
 void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
@@ -47,10 +47,10 @@ void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
 
 		for (unsigned j = 0; j < size(); j++) {
 
-			double xj = xc[j];
-			double zj = zc[j];
-			double thetaj = theta[j];
-			double dsj = ds[j];
+			double xj = m_xc[j];
+			double zj = m_zc[j];
+			double thetaj = m_theta[j];
+			double dsj = m_ds[j];
 
 			c1 = -(xi - xj) * cos(thetaj) - (zi - zj) * sin(thetaj);
 			c2 = std::pow(xi - xj, 2.0) + std::pow(zi - zj, 2.0);
@@ -83,15 +83,15 @@ void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
 
 		for (unsigned j = 0; j < size(); j++) {
 			if (j == last) {
-				blobs.m_uvs[i] += px(i, last) * gamma[last]
-				                   + qx(i, last) * gamma[0];
-				blobs.m_wvs[i] += py(i, last) * gamma[last]
-				                   + qy(i, last) * gamma[0];
+				blobs.m_uvs[i] += px(i, last) * m_gamma[last]
+				                   + qx(i, last) * m_gamma[0];
+				blobs.m_wvs[i] += py(i, last) * m_gamma[last]
+				                   + qy(i, last) * m_gamma[0];
 			} else {
-				blobs.m_uvs[i] += px(i, j) * gamma[j]
-				                   + qx(i, j) * gamma[j + 1];
-				blobs.m_wvs[i] += py(i, j) * gamma[j]
-				                   + qy(i, j) * gamma[j + 1];
+				blobs.m_uvs[i] += px(i, j) * m_gamma[j]
+				                   + qx(i, j) * m_gamma[j + 1];
+				blobs.m_wvs[i] += py(i, j) * m_gamma[j]
+				                   + qy(i, j) * m_gamma[j + 1];
 			}
 		}
 		blobs.m_uvs[i] *= m_rpi2;
@@ -102,7 +102,7 @@ void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
 void VortexSheet::compute_loads(double Urel)
 {
 	Vector P(size());
-	Vector Dp = -m_rho / m_dt * (gamma % ds);
+	Vector Dp = -m_rho / m_dt * (m_gamma % m_ds);
 
     for (unsigned i=0;i<size()-1;i++)
     {
@@ -121,32 +121,32 @@ void VortexSheet::compute_loads(double Urel)
 
     P += (pref-pmax)*arma::ones(size(),1); 
 
-    m_fx = -arma::sum(P % enx % ds);
-	m_fz = -arma::sum(P % enz % ds);
+    m_fx = -arma::sum(P % m_enx % m_ds);
+	m_fz = -arma::sum(P % m_enz % m_ds);
 
 }
 
 unsigned VortexSheet::size()
 {
-	if ((gamma.size() != xc.size())
-	    && (gamma.size() != zc.size())
-	    && (gamma.size() != x.size()-1)
-	    && (gamma.size() != z.size()-1)
-	    && (gamma.size() != ds.size())
-	    && (gamma.size() != theta.size())
-	    && (gamma.size() != enx.size())
-	    && (gamma.size() != enz.size())
-	    && (gamma.size() != etx.size())
-	    && (gamma.size() != etz.size())) {
+	if ((m_gamma.size() != m_xc.size())
+	    && (m_gamma.size() != m_zc.size())
+	    && (m_gamma.size() != m_x.size()-1)
+	    && (m_gamma.size() != m_z.size()-1)
+	    && (m_gamma.size() != m_ds.size())
+	    && (m_gamma.size() != m_theta.size())
+	    && (m_gamma.size() != m_enx.size())
+	    && (m_gamma.size() != m_enz.size())
+	    && (m_gamma.size() != m_etx.size())
+	    && (m_gamma.size() != m_etz.size())) {
 		throw std::string("Size mismatch in VortexSheet");
 	}
-	return gamma.size();
+	return m_gamma.size();
 }
 
 void VortexSheet::print_collocation()
 {
 	for (unsigned i = 0; i < size(); i++) {
-		std::cout << "(xc,zc) = (" << xc(i) << "," << zc(i) << ")" << std::endl;
+		std::cout << "(xc,zc) = (" << m_xc(i) << "," << m_zc(i) << ")" << std::endl;
 	}
 }
 
@@ -154,14 +154,14 @@ void VortexSheet::print_unit_vectors()
 {
 	for (unsigned i = 0; i < size(); i++) {
 		std::cout << "For panel No " << i << "the normal vectors are en = ("
-		          << enx(i) << "," << enz(i) << ") and et = (" << etx(i) << ","
-		          << etz(i) << ")" << std::endl;
+		          << m_enx(i) << "," << m_enz(i) << ") and et = (" << m_etx(i) << ","
+		          << m_etz(i) << ")" << std::endl;
 	}
 }
 
 void VortexSheet::print_gamma()
 {
-	gamma.print();
+	m_gamma.print();
 }
 
 std::tuple<double, double> VortexSheet::get_forces()

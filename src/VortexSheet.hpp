@@ -12,17 +12,17 @@
 class VortexSheet
 {
 	public:
-	Vector gamma;      ///< surface vorticity
-	Vector x;          ///< x-coordinate point
-	Vector z;          ///< z-coordinate point
-	Vector xc;         ///< x-collocation point
-	Vector zc;         ///< z-collocation point
-	Vector theta;      ///< angle
-	Vector ds;         ///< panel
-	Vector enx;        ///< x-coor normal unit vector
-	Vector enz;        ///< z-coor normal unit vector
-	Vector etx;        ///< x-coor tangential unit vector
-	Vector etz;        ///< z-coor tangential unit vector
+	Vector m_gamma;      ///< surface vorticity
+	Vector m_x;          ///< x-coordinate point
+	Vector m_z;          ///< z-coordinate point
+	Vector m_xc;         ///< x-collocation point
+	Vector m_zc;         ///< z-collocation point
+	Vector m_theta;      ///< angle
+	Vector m_ds;         ///< panel
+	Vector m_enx;        ///< x-coor normal unit vector
+	Vector m_enz;        ///< z-coor normal unit vector
+	Vector m_etx;        ///< x-coor tangential unit vector
+	Vector m_etz;        ///< z-coor tangential unit vector
 
 	private:
 	double m_rho; ///< Density of fluid
