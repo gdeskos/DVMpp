@@ -33,6 +33,11 @@ class VortexSheet
 	double m_pi;   ///< pi
 	double m_rpi2; ///< 1 / (2pi)
 
+	/// Read the input coordinate file
+	/** \param domain domain file to be read */
+	void read_input_coord(std::string domain);
+
+
 	public:
 	VortexSheet();
 

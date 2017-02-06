@@ -12,6 +12,33 @@ VortexSheet::VortexSheet(const XmlHandler &xml)
 
 	m_pi = 4.0 * atan(1.0);
 	m_rpi2 = 1.0 / (2.0 * m_pi);
+
+	auto indir = xml.getStringAttribute("io", "input_dir");
+	// Make sure we have trailing separator
+	if (indir.back() != '/') {
+		indir += '/';
+	}
+
+	std::string domain = indir + xml.getStringAttribute("io", "domain_file");
+
+	read_input_coord(domain);
+}
+
+void VortexSheet::read_input_coord(std::string file)
+{
+	// Make use of the armadillo functionality to read the file
+	Matrix coords;
+	bool status = coords.load(file, arma::raw_ascii);
+
+	if (status != true) {
+		throw std::string("Could not open coordinates file");
+	}
+
+	m_x = coords.col(0);
+	m_z = coords.col(1);
+
+	std::cout << "Succesfully loaded coordinate file with " << m_x.n_elem
+	          << " points." << std::endl;
 }
 
 void VortexSheet::resize(unsigned size)
