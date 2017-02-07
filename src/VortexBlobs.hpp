@@ -2,6 +2,7 @@
 #define VORTEXBLOBS_H
 
 #include "BaseTypes.hpp"
+#include "Random.hpp"
 #include "XmlHandler.hpp"
 
 #include <vector>
@@ -33,12 +34,18 @@ class VortexBlobs
 	/// Constructor
 	/** \param xml input xml file*/
 	VortexBlobs(const XmlHandler &xml);
+    /// Constructor
+    /** \creates N number of vortices and sets them to zero*/
+    VortexBlobs(const unsigned& N);
 
-    /// Amends vortexblobs
+    /// Appends vortexblobs
     void append_vortices(VortexBlobs &NewVortBlobs);
     
     /// Biot-Savart relationship
 	void biotsavart();
+
+    /// Diffusion through random walk
+    void diffusion_random_walk(Random& _rand,const double & nu, const double &dt);
 
 	/// Find the total circulation
 	double totalcirc();
@@ -58,6 +65,9 @@ class VortexBlobs
 
 	/// Print the circulation of each vortex blob
 	void print_circulation();
+
+    /// Destructor
+    ~VortexBlobs();
 };
 
 #endif

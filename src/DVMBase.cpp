@@ -37,12 +37,11 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 
 	m_rho = getVal("constants", "density");
 	m_nu = getVal("constants", "nu");
+	m_maxGamma = getVal("constants", "max_Gamma");
 	m_maxNumPanelVort = getVal("constants", "max_NumPanelVort");
-	m_kernel_threshold = getVal("constants", "kernel_threshold");
 	m_cutoff_exp = getVal("constants", "cutoff_exp");
-
 	// Need to find a way in the xml handler to deal with this too
-	if (m_cutoff_exp >= 1 ) {
+	if (m_cutoff_exp >= 1) {
 		throw std::string(
 		    "<IC2DDVM><constants><cutoff_exponent> must be less than one and greater than 0.5");
 	}
@@ -52,6 +51,7 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 
 	m_Ux = getVal("flow", "ux");
 	m_Uz = getVal("flow", "uz");
+	m_Ur = std::sqrt(m_Ux * m_Ux + m_Uz * m_Uz);
 
 	m_probe.m_x = xml.getList("probe", "x");
 	m_probe.m_z = xml.getList("probe", "z");
@@ -67,6 +67,16 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 	} else if (scheme.compare("RK4") == 0) {
 		m_scheme = Scheme::RK4;
 	} // Invalid cases dealt with by the xml handler
+    
+    std::string surfacecross = "REFLECT";//getStr("algorithms", "surface_crossing");
+    if (surfacecross.compare("DELETE") == 0) {
+		m_surfcross = SurfaceCross::DELETE;
+	} else if (surfacecross.compare("ABSORB") == 0) {
+		m_surfcross = SurfaceCross::ABSORB;
+	} else if (surfacecross.compare("REFLECT") == 0) {
+		m_surfcross = SurfaceCross::REFLECT;
+	} // Invalid cases dealt with by the xml handler
+	
 }
 
 void DVMBase::solve()
@@ -92,23 +102,21 @@ void DVMBase::compute_step()
 	// Inviscid Substep
 	m_vortsheet.solvevortexsheet(m_vortex);
 
-    double Urel;
-    Urel=std::sqrt(m_Ux*m_Ux+m_Uz*m_Uz);
-	m_vortsheet.compute_loads(Urel);
-    //This should not be here! This is just a test
-	double fx, fz;
-	std::tie(fx, fz) = m_vortsheet.get_forces();
-    std::cout<<"C_D = "<<fx/(0.5*m_rho*1.0*Urel*Urel)<<"\t"<<"C_L = "<<fz/(0.5*m_rho*1.0*Urel*Urel)<<std::endl;
-
+	m_vortsheet.compute_loads(m_Ur);
+	
 	convect();
     
     // The diffusion substep is split into two steps
-    diffuse_vs_rw(); // A diffussion problem with only a flux of vorticity in the boundaries dgamma/dn=a
-	diffrw();        // A diffussion problem in an infinite domain
-
-	// Housekeeping
-    // For a large time step vortices may cross the boundary due to random walk! We reflect them back
-	reflect();
+    // A diffussion problem with only a flux of vorticity in the boundaries dgamma/dn=a 
+    VortexBlobs NewVortices=m_vortsheet.release_nascent_vortices_rw(m_rand); 
+    m_vortex.append_vortices(NewVortices); 
+	
+    m_vortex.diffusion_random_walk(m_rand,m_nu,m_dt); // A diffussion problem in an infinite domain
+    
+    // If a large time step is used some vortices may cross the boundary due to random walk! 
+    // Care is taken of these vortices by 1) Deleting them, 2) Absorbing them, 3) Reflecting them back to the flow
+    m_vortsheet.reflect(m_vortex);		
+	
 }
 
 
@@ -147,8 +155,8 @@ void DVMBase::init_outputs()
 	    (m_out_dir + m_timestamp + std::string("_loads.dat")).c_str());
 	dev_loads << "Time [s]"
 	          << " "
-	          << "\tC_x [-]"
-	          << "\tC_z [-]" << std::endl;
+	          << "\tF_x [-]"
+	          << "\tF_z [-]" << std::endl;
 
 	dev_probe.open(
 	    (m_out_dir + m_timestamp + std::string("_probe.dat")).c_str());
@@ -204,8 +212,8 @@ void DVMBase::write_outputs()
 
 	double fx, fz;
 	std::tie(fx, fz) = m_vortsheet.get_forces();
-	//dev_loads << m_step << " " << fx << "\t" << fz << std::endl;
-    dev_loads<<m_step<<"  "<<fx/(0.5*m_rho*1.0*m_Ux*m_Ux)<<"\t"<<fz/(0.5*m_rho*1.0*m_Ux*m_Ux)<<std::endl;
+	dev_loads << m_step << " " << fx << "\t" << fz << std::endl;
+    //dev_loads<<m_step<<"  "<<fx/(0.5*m_rho*1.0*m_Ux*m_Ux)<<"\t"<<fz/(0.5*m_rho*1.0*m_Ux*m_Ux)<<std::endl;
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
 		dev_probe << m_time << " " << m_probe.m_u(i) << " " << m_probe.m_w(i)
@@ -226,208 +234,6 @@ void DVMBase::convect()
 	default:
 		throw std::string("nothing else implemented yet");
 	}
-}
-
-void DVMBase::diffrw()
-{
-	double R1, R2, rrw, thetarw;
-
-	for (unsigned i = 0; i < m_vortex.size(); i++) {
-
-		// Generate two random numbers in the range 0...1
-		R1 = m_rand.rand();
-		R2 = m_rand.rand();
-
-		// Calculate r and theta for the random walk
-		rrw = std::sqrt(4.0 * m_nu * m_dt * std::log(1.0 / R1));
-		thetarw = 2.0 * m_pi * R2;
-
-		m_vortex.m_x(i) += rrw * cos(thetarw);
-		m_vortex.m_z(i) += rrw * sin(thetarw);
-	}
-}
-
-void DVMBase::diffuse_vs_rw() // I will change its name to releave vortices 
-{
-	//double x, z, circ, sigma;
-	auto Nvs = m_vortsheet.size();
-
-	double R, rrw;
-
-    // First we need to determine how many of these vortices will be created at each 
-    // panel. This is in accordance with Morgenthal PhD 4.3.6 Vortex release algorithm (eq. 4.108)
-    Vector_un PanelNewVort(Nvs);                            // Panel's new vortices
-    Vector PanelCirc = m_vortsheet.m_gamma%m_vortsheet.m_ds;    // Panel's total circulation
-    Vector AbsPanelCirc = arma::abs(PanelCirc/arma::max(PanelCirc)*m_maxNumPanelVort); // Absolute value of the panel vorticity   
-    Vector Circ_new(Nvs);
-    //GD---> Should not need to do a loop here. Unfortunately for some reason armadillo does not allow me to do 
-    //       PanelNewVort=arma::round(AbsPanelCirc)+arma::ones(Nvs,1), perhaps MAB can fix this. 
-    for (unsigned i=0;i<Nvs;i++)
-    {
-    PanelNewVort(i) = std::floor(AbsPanelCirc(i))+1; // Number of released vortices per panel
-    assert(PanelNewVort(i)>0);
-    Circ_new(i)=PanelCirc(i)/PanelNewVort(i); // Circulation of each vortex we release from the ith panel
-    }
-    
-    unsigned Nrv=arma::sum(PanelNewVort); //Number of the new vortices. 
-    // if we set the maximum number of vortices from each panel=1, then Nrv=Nsv
-    Vector x_vec(Nrv);
-	Vector z_vec(Nrv);
-	Vector circ_vec(Nrv);
-	Vector sigma_vec(Nrv); 
-    unsigned counter=0; 
-
-    //Calculating the position of the newelly released vortices
-    double xstart,zstart,xm,zm;
-
-    for (unsigned i=0; i<Nvs;i++){
-        xstart=m_vortsheet.m_x(i);zstart=m_vortsheet.m_z(i); // Coordinates for the start point of the panel
-        unsigned j=0;
-        while (j<PanelNewVort[i])
-        {
-            //Find locations at the ith panel from which the vortices should be released
-            xm=xstart+m_vortsheet.m_ds(i)*m_vortsheet.m_etx(i)/(PanelNewVort(i)+1);
-            zm=zstart+m_vortsheet.m_ds(i)*m_vortsheet.m_etz(i)/(PanelNewVort(i)+1);
-            //Here is the tricky bit !!! Morgenthal shows in figure 4.7 that the particles may be released with
-            //some random walk in both the normal (to the panel) and the tangential directions. This is
-            //wrong according to Chorin 1978. Since we are in the boundary layer, the diffusion process takes place only
-            //in the normal direction and not the streamwise. This also according to Prandtl's boundary layer approximation.
-            //I will implement the Chorin 1978 here and not the Morgenthal one. In the end, this should not make 
-            //a huge difference.
-        
-            //Create Random walk values
-            R=m_rand.rand();
-            rrw=std::abs(std::sqrt(4.0*m_nu*m_dt*std::log(1.0/R))); //This is half normal distribution only in the ourwards direction
-	        // Add the released vortex
-            m_vortex.m_ID.push_back(m_vortex.m_ID.size() + 1); //add the id
-            x_vec(counter)=xm+rrw*m_vortsheet.m_enx(i);
-            z_vec(counter)=zm+rrw*m_vortsheet.m_enz(i);
-            circ_vec(counter)=Circ_new(i);
-            //Now for the cut-off kernel we implement things as suggested by Mirta Perlman 1985 (JCP)
-            //using sigma=ds^q where 0.5<q<1. She suggests using q=0.625! This q parameter is the coefficient not the cutoff
-            //parameter the inputs file.
-            sigma_vec(counter)=std::pow(m_vortsheet.m_ds(i),m_cutoff_exp);
-            counter++;
-            assert(counter<=Nrv);
-            j++;
-        }   
-            
-    }
-	        m_vortex.m_x.insert_rows(m_vortex.m_x.n_elem, x_vec);
-	        m_vortex.m_z.insert_rows(m_vortex.m_z.n_elem, z_vec);
-	        m_vortex.m_circ.insert_rows(m_vortex.m_circ.n_elem, circ_vec);
-	        m_vortex.m_sigma.insert_rows(m_vortex.m_sigma.n_elem, sigma_vec);
-            
-            //And then we initialize everything else to zero
-	        m_vortex.m_u.insert_rows(m_vortex.m_u.n_elem, Nrv, true);
-	        m_vortex.m_w.insert_rows(m_vortex.m_w.n_elem, Nrv, true);
-	        m_vortex.m_uvs.insert_rows(m_vortex.m_uvs.n_elem, Nrv, true);
-	        m_vortex.m_wvs.insert_rows(m_vortex.m_wvs.n_elem, Nrv, true);
-	        m_vortex.m_omega.insert_rows(m_vortex.m_omega.n_elem, Nrv, true); 
-}
-
-void DVMBase::reflect()
-{
-	std::vector<unsigned> closest_panel;
-	std::vector<double> min_dist;
-
-	closest_panel.resize(m_vortex.size());
-	min_dist.resize(m_vortex.size());
-
-	std::vector<double> _mirror;
-	_mirror.resize(2);
-	double x_init, z_init, x_0, z_0, x_1, z_1;
-
-	double dx, dz, dr, min_prev;
-
-	for (unsigned i = 0; i < m_vortex.size(); i++) {
-		min_dist[i] = 0;
-		closest_panel[i] = 0;
-
-		if (inside_body(m_vortex.m_x(i), m_vortex.m_z(i))) {
-
-			// Find which panel is closest to the vortex
-			min_prev = 10E6;
-			for (unsigned j = 0; j < m_vortsheet.size(); j++) {
-
-				dx = m_vortsheet.m_xc(j) - m_vortex.m_x(i);
-				dz = m_vortsheet.m_zc(j) - m_vortex.m_z(i);
-				dr = std::sqrt(std::pow(dx, 2.0) + std::pow(dz, 2.0));
-
-				if (dr < min_prev) {
-					closest_panel[i] = j;
-					min_prev = dr;
-				}
-			}
-
-			// Find the mirror image vortex blob
-			x_init = m_vortex.m_x(i);
-			z_init = m_vortex.m_z(i);
-
-			x_0 = m_body.x[closest_panel[i]];
-			z_0 = m_body.z[closest_panel[i]];
-			x_1 = m_body.x[closest_panel[i] + 1];
-			z_1 = m_body.z[closest_panel[i] + 1];
-
-			_mirror = mirror(x_init, z_init, x_0, z_0, x_1, z_1);
-
-			// std::cout << "Mirrored vortex from " << m_vortex.x[i] << "," <<
-			// m_vortex.z[i];
-
-			m_vortex.m_x(i) = _mirror[0];
-			m_vortex.m_z(i) = _mirror[1];
-			m_vortex.m_circ(i) = m_vortex.m_circ(i); // This does not do anything
-			                                     // ??? - should this be
-			                                     // different ???
-			// std::cout<<m_vortex.x[i]<<"\t"<<m_vortex.z[i]<<"\n";
-
-			// std::cout << " to "  << m_vortex.x[i] << "," << m_vortex.z[i] <<
-			// std::endl;
-		}
-	}
-}
-
-std::vector<double> DVMBase::mirror(double x_init,
-                                    double z_init,
-                                    double x_0,
-                                    double z_0,
-                                    double x_1,
-                                    double z_1)
-{
-	std::vector<double> p2;
-	p2.resize(2);
-	double dx, dz, a, b;
-
-	dx = x_1 - x_0;
-	dz = z_1 - z_0;
-
-	a = (dx * dx - dz * dz) / (dx * dx + dz * dz);
-	b = 2.0 * dx * dz / (dx * dx + dz * dz);
-
-	p2[0] = a * (x_init - x_0) + b * (z_init - z_0) + x_0;
-	p2[1] = b * (x_init - x_0) - a * (z_init - z_0) + z_0;
-
-	return p2;
-}
-
-// Check whether a discrete vortex is inside the body
-// (Crossing rule method)
-int DVMBase::inside_body(double x, double z)
-{
-	int cn = 0;
-
-	// loop through all the edges of the polygon
-	for (unsigned i = 0; i < m_body.size() - 1; i++) {
-		if (((m_body.z[i] <= z) && (m_body.z[i + 1] > z))
-		    || ((m_body.z[i] > z) && (m_body.z[i + 1] <= z))) {
-			float vt =
-			    (float)(z - m_body.z[i]) / (m_body.z[i + 1] - m_body.z[i]);
-			if (x < m_body.x[i] + vt * (m_body.x[i + 1] - m_body.x[i])) {
-				++cn;
-			}
-		}
-	}
-	return (cn & 1);
 }
 
 void DVMBase::probe_velocities()
@@ -455,7 +261,7 @@ void DVMBase::probe_velocities()
 			dz_ij = z_i - m_vortex.m_z(j);
 			dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
-			threshold = m_kernel_threshold * std::pow(m_vortex.m_sigma(j), 2);
+			threshold = 10 * std::pow(m_vortex.m_sigma(j), 2);
 			rsigmasqr = 1.0 / std::pow(m_vortex.m_sigma(j), 2);
 
 			if (dr_ij2 < threshold) {

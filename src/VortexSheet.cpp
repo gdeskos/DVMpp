@@ -8,10 +8,15 @@ VortexSheet::VortexSheet()
 VortexSheet::VortexSheet(const XmlHandler &xml)
 {
 	m_rho = xml.getValueAttribute("constants", "density");
+	m_nu = xml.getValueAttribute("constants", "nu");
 	m_dt = xml.getValueAttribute("time", "dt");
 
 	m_Ux = xml.getValueAttribute("flow", "ux");
 	m_Uz = xml.getValueAttribute("flow", "uz");
+
+	m_maxGamma = xml.getValueAttribute("constants", "max_Gamma");
+	m_maxNumPanelVort = xml.getValueAttribute("constants", "max_NumPanelVort");
+	m_cutoff_exp = xml.getValueAttribute("constants", "cutoff_exp");
 
 	m_kernel_threshold = xml.getValueAttribute("constants", "kernel_threshold");
 
@@ -147,6 +152,7 @@ void VortexSheet::compute_influence_matrix()
 
 	std::cout << "Computed influence matrix of size " << arma::size(m_infM)
 	          << " after Kuette and Chow" << std::endl;
+
 }
 
 void VortexSheet::solvevortexsheet(VortexBlobs &blobs)
@@ -203,6 +209,7 @@ void VortexSheet::solvevortexsheet(VortexBlobs &blobs)
 	// Solve system
 	m_gamma = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
 }
+
 void VortexSheet::resize(unsigned size)
 {
 	m_gamma.set_size(size);
@@ -286,7 +293,183 @@ void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
 	}
 }
 
-void VortexSheet::compute_loads(double Urel)
+VortexBlobs VortexSheet::release_nascent_vortices_rw(Random &_rand)
+{
+	// double x, z, circ, sigma;
+	auto Nvs = size();
+
+	double R, rrw;
+
+	// First we need to determine how many of these vortices will be created at
+	// each panel. This is in accordance with Morgenthal PhD 4.3.6 Vortex release
+	// algorithm (eq. 4.108)
+	Vector_un PanelNewVort(Nvs);       // Panel's new vortices
+
+	Vector PanelCirc = m_gamma % m_ds; // Panel's total circulation
+
+	Vector AbsPanelCirc =
+	    arma::abs(PanelCirc / arma::max(PanelCirc)
+	              * m_maxNumPanelVort); // Absolute value of the panel vorticity
+
+	Vector Circ_new(Nvs);
+	// GD---> Should not need to do a loop here. Unfortunately for some reason
+	// armadillo does not allow me to do
+	// PanelNewVort=arma::round(AbsPanelCirc)+arma::ones(Nvs,1), perhaps
+	// MAB can fix this.
+	for (unsigned i = 0; i < Nvs; i++) {
+		// Number of released vortices per panel
+		PanelNewVort(i) = std::floor(AbsPanelCirc(i)) + 1;
+		assert(PanelNewVort(i) > 0);
+
+		// Circulation of each vortex we release from the ith panel
+		Circ_new(i) = PanelCirc(i) / PanelNewVort(i);
+	}
+
+	// Number of the new vortices.
+	// if we set the maximum number of vortices from each panel=1, then Nrv=Nsv
+	unsigned Nrv = arma::sum(PanelNewVort);
+
+	// Initialize the vortexblobs ready for release
+	VortexBlobs nascentVort(Nrv);
+
+	// Calculating the position of the newelly released vortices
+	double xm, zm;
+	unsigned counter = 0;
+
+	for (unsigned i = 0; i < Nvs; i++) {
+		unsigned j = 0;
+		while (j < PanelNewVort(i)) {
+			// Find locations at the ith panel from which the vortices should be
+			// released
+			xm = m_x(i) + m_ds(i) * m_etx(i) / (PanelNewVort(i) + 1);
+			zm = m_z(i) + m_ds(i) * m_etz(i) / (PanelNewVort(i) + 1);
+
+			// Here is the tricky bit !!! Morgenthal shows in figure 4.7 that
+			// the particles may be released with
+			// some random walk in both the normal (to the panel) and the
+			// tangential directions. This is
+			// wrong according to Chorin 1978. Since we are in the boundary
+			// layer, the diffusion process takes place only
+			// in the normal direction and not the streamwise. This also
+			// according to Prandtl's boundary layer approximation.
+			// I will implement the Chorin 1978 here and not the Morgenthal one.
+			// In the end, this should not make
+			// a huge difference.
+
+			// Create Random walk values
+			R = _rand.rand();
+
+			// This is half normal distribution only in the outwards direction
+			rrw = std::abs(std::sqrt(4.0 * m_nu * m_dt * std::log(1.0 / R)));
+
+			// Add the released vortex
+			nascentVort.m_x(counter) = xm + rrw * m_enx(i);
+			nascentVort.m_z(counter) = zm + rrw * m_enz(i);
+			nascentVort.m_circ(counter) = Circ_new(i);
+
+			// Now for the cut-off kernel we implement things as suggested by
+			// Mirta Perlman 1985 (JCP)
+			// using sigma=ds^q where 0.5<q<1. She suggests using q=0.625! This
+			// q parameter is the coefficient not the cutoff
+			// parameter the inputs file.
+			nascentVort.m_sigma(counter) = std::pow(m_ds(i), m_cutoff_exp);
+
+			counter++;
+			assert(counter <= Nrv);
+			j++;
+		}
+	}
+	return nascentVort;
+}
+
+void VortexSheet::reflect(VortexBlobs& vortex)
+{
+	Vector_un closest_panel(vortex.size());
+	Vector min_dist(vortex.size());
+	Vector _mirror(2);
+
+	double x_init, z_init, x_0, z_0, x_1, z_1;
+
+	double dx, dz, dr, min_prev;
+
+	for (unsigned i = 0; i < vortex.size(); i++) {
+		min_dist(i) = 0;
+		closest_panel(i) = 0;
+
+		if (inside_body(vortex.m_x(i), vortex.m_z(i))) {
+
+			// Find which panel is closest to the vortex
+			min_prev = 10E6;
+			for (unsigned j = 0; j < size(); j++) {
+
+				dx = m_xc(j) - vortex.m_x(i);
+				dz = m_zc(j) - vortex.m_z(i);
+				dr = std::sqrt(std::pow(dx, 2.0) + std::pow(dz, 2.0));
+
+				if (dr < min_prev) {
+					closest_panel(i) = j;
+					min_prev = dr;
+				}
+			}
+
+			// Find the mirror image vortex blob
+			x_init = vortex.m_x(i);
+			z_init = vortex.m_z(i);
+
+			x_0 = m_x(closest_panel(i));
+			z_0 = m_z(closest_panel(i));
+			x_1 = m_x(closest_panel(i) + 1);
+			z_1 = m_z(closest_panel(i) + 1);
+
+			_mirror = mirror(x_init, z_init, x_0, z_0, x_1, z_1);
+
+			vortex.m_x(i) = _mirror(0);
+			vortex.m_z(i) = _mirror(1);
+            // All other properties of the vortices 
+		}
+	}
+}
+
+int VortexSheet::inside_body(const double& xcoor, const double& zcoor)
+{
+    int cn = 0; 
+    
+    for (unsigned i = 0; i < size(); i++) {
+		if (((m_z(i) <= zcoor) && (m_z(i + 1) > zcoor))
+		    || ((m_z(i) > zcoor) && (m_z(i + 1) <= zcoor))) {
+
+			float vt = (float)(zcoor - m_z(i)) / (m_z(i + 1) - m_z(i));
+			if (xcoor < m_x(i) + vt * (m_x(i + 1) - m_x(i))) {
+				++cn;
+			}
+		}
+	}
+	return (cn & 1);
+}
+
+Vector VortexSheet::mirror(const double &x_init,
+                           const double &z_init,
+                           const double &x_0,
+                           const double &z_0,
+                           const double &x_1,
+                           const double &z_1)
+{
+	Vector p2(2);
+	double dx, dz, a, b;
+
+	dx = x_1 - x_0;
+	dz = z_1 - z_0;
+
+	a = (dx * dx - dz * dz) / (dx * dx + dz * dz);
+	b = 2.0 * dx * dz / (dx * dx + dz * dz);
+
+	p2(0) = a * (x_init - x_0) + b * (z_init - z_0) + x_0;
+	p2(1) = b * (x_init - x_0) - a * (z_init - z_0) + z_0;
+
+	return p2;
+}
+
+void VortexSheet::compute_loads(double Ur)
 {
 	Vector P(size());
 	Vector Dp = -m_rho / m_dt * (m_gamma % m_ds);
@@ -304,13 +487,16 @@ void VortexSheet::compute_loads(double Urel)
 
     P(size()-1)=0.5*(P(size()-1)+P(0));
 	double pmax=arma::max(P);
-    double pref=0.5*m_rho*Urel*Urel;
+    double pref=0.5*m_rho*Ur*Ur;
 
     P += (pref-pmax)*arma::ones(size(),1); 
 
+    // To find the forces we need to measure on the particle
+    // we need to change sign 
     m_fx = -arma::sum(P % m_enx % m_ds);
 	m_fz = -arma::sum(P % m_enz % m_ds);
-
+    
+    std::cout<<"C_D = "<<m_fx/(0.5*m_rho*1.0*Ur*Ur)<<"\t"<<"C_L = "<<m_fz/(0.5*m_rho*1.0*Ur*Ur)<<std::endl;
 }
 
 unsigned VortexSheet::size()
