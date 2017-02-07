@@ -18,8 +18,6 @@ VortexSheet::VortexSheet(const XmlHandler &xml)
 	m_maxNumPanelVort = xml.getValueAttribute("constants", "max_NumPanelVort");
 	m_cutoff_exp = xml.getValueAttribute("constants", "cutoff_exp");
 
-	m_kernel_threshold = xml.getValueAttribute("constants", "kernel_threshold");
-
 	m_pi = 4.0 * atan(1.0);
 	m_rpi2 = 1.0 / (2.0 * m_pi);
 
@@ -183,8 +181,7 @@ void VortexSheet::solvevortexsheet(VortexBlobs &blobs)
 				dz_ij = m_zc(i) - blobs.m_z(j);
 				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
 
-				threshold =
-				    m_kernel_threshold * std::pow(blobs.m_sigma(j), 2);
+				threshold = 10 * std::pow(blobs.m_sigma(j), 2);
 				rsigmasqr = 1.0 / std::pow(blobs.m_sigma(j), 2);
 
 				if (dr_ij2 < threshold) {

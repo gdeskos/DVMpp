@@ -45,8 +45,6 @@ class VortexSheet
 	double m_Ux; ///< Freestream x-velocity
 	double m_Uz; ///< Freestream z-velocity
 
-	double m_kernel_threshold; ///< Kernel threshold
-
 	double m_pi;   ///< pi
 	double m_rpi2; ///< 1 / (2pi)
 
