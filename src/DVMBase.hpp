@@ -99,14 +99,6 @@ class DVMBase
 	void init_outputs();
 	///@}
 
-
-	/** @name Vortex sheet related methods */
-	///@{
-
-	/// Solve for the vortex sheet
-	void solvevortexsheet(VortexBlobs &blobs);
-	///@}
-
 	/// Convect point vortices
 	void convect();
 

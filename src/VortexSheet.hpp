@@ -32,6 +32,11 @@ class VortexSheet
 	double m_fx; ///< Force in x-direction
 	double m_fz; ///< Force in z-direction
 
+	double m_Ux; ///< Freestream x-velocity
+	double m_Uz; ///< Freestream z-velocity
+
+	double m_kernel_threshold; ///< Kernel threshold
+
 	double m_pi;   ///< pi
 	double m_rpi2; ///< 1 / (2pi)
 
@@ -59,6 +64,9 @@ class VortexSheet
 	/** Updates the blobs in place.
 	 * \param blobs vortex blobs to update */
 	void vortexsheetbc(VortexBlobs &blobs);
+
+	/// Solve for the vortex sheet
+	void solvevortexsheet(VortexBlobs &blobs);
 
 	/// Compute the forces on the body
 	void compute_loads(double Urel);

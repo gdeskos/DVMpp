@@ -90,7 +90,7 @@ void DVMBase::solve()
 void DVMBase::compute_step()
 {
 	// Inviscid Substep
-	solvevortexsheet(m_vortex);
+	m_vortsheet.solvevortexsheet(m_vortex);
 
     double Urel;
     Urel=std::sqrt(m_Ux*m_Ux+m_Uz*m_Uz);
@@ -226,63 +226,6 @@ void DVMBase::convect()
 	default:
 		throw std::string("nothing else implemented yet");
 	}
-}
-
-void DVMBase::solvevortexsheet(VortexBlobs &blobs)
-{
-
-	unsigned Nl = m_vortsheet.size();
-
-	Vector brhs(Nl + 1);
-
-	if (blobs.size() == 0) {
-		brhs.rows(0, Nl - 1) = m_Ux * m_vortsheet.m_enx + m_Uz * m_vortsheet.m_enz;
-		brhs(Nl) = -blobs.totalcirc();
-
-	} else {
-		Vector u(Nl);
-		Vector w(Nl);
-
-#pragma omp parallel for
-		for (unsigned i = 0; i < m_vortsheet.size(); i++) {
-
-			double dK_ij, rsigmasqr, dx_ij, dz_ij, dr_ij2, threshold;
-
-			u(i) = 0.0;
-			w(i) = 0.0;
-
-			for (unsigned j = 0; j < blobs.size(); j++) {
-
-				dx_ij = m_vortsheet.m_xc(i) - blobs.m_x(j);
-				dz_ij = m_vortsheet.m_zc(i) - blobs.m_z(j);
-				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
-
-				threshold =
-				    m_kernel_threshold * std::pow(blobs.m_sigma(j), 2);
-				rsigmasqr = 1.0 / std::pow(blobs.m_sigma(j), 2);
-
-				if (dr_ij2 < threshold) {
-					dK_ij = (1.0 - std::exp(-dr_ij2 * rsigmasqr)) / dr_ij2;
-				} else {
-					dK_ij = 1.0 / dr_ij2;
-				}
-
-				u(i) -= dK_ij * dz_ij * blobs.m_circ(j);
-				w(i) += dK_ij * dx_ij * blobs.m_circ(j);
-			}
-		}
-
-		u *= m_rpi2;
-		w *= m_rpi2;
-
-		// Not entirely convinced that this is the correct BC (see Morgenthal)
-		brhs.rows(0, Nl - 1) =
-		    (m_Ux + u) % m_vortsheet.m_enx + (m_Uz + w) % m_vortsheet.m_enz;
-		brhs(Nl) = -blobs.totalcirc();
-	}
-
-	// Solve system
-	m_vortsheet.m_gamma = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
 }
 
 void DVMBase::diffrw()
