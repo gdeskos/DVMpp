@@ -111,7 +111,7 @@ void VortexSheet::reflect(VortexBlobs& vortex)
 		min_dist(i) = 0;
 		closest_panel(i) = 0;
 
-		if (inside_body(vortex.m_x(i), vortex.m_z(i))<0) {
+		if (inside_body(vortex.m_x(i), vortex.m_z(i))) {
 
 			// Find which panel is closest to the vortex
 			min_prev = 10E6;
@@ -148,23 +148,19 @@ void VortexSheet::reflect(VortexBlobs& vortex)
 int VortexSheet::inside_body(const double& xcoor, const double& zcoor)
 {
 
-    // Checks whether a vortex is inside the body following the crossing rule method
-	// The algorithm reports the panel number that this particular vortex crossed 
-    // which is then used in the absorb algorithm if it is inside the body and gives 
-    // the satanic -666 if the goddam vortex is still free !!!
 
-    int cn = -666; 
+    int cn = 0; 
     for (unsigned i = 0; i < size(); i++) {
 		if (((z(i) <= zcoor) && (z(i + 1) > zcoor))
 		    || ((z(i) > zcoor) && (z(i + 1) <= zcoor))) {
 			float vt =
 			    (float)(zcoor - z(i)) / (z(i + 1) - z(i));
 			if (xcoor < x(i) + vt * (x(i + 1) - x(i))) {
-				cn=i; //This the number of the panel that the particle crossed
+				++cn; //This the number of the panel that the particle crossed
 			}
 		}
 	}
-	return (cn);
+	return (cn & 1);
 }
 
 Vector VortexSheet::mirror(const double &x_init,
