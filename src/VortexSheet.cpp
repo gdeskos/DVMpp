@@ -99,15 +99,15 @@ VortexBlobs VortexSheet::release_nascent_vortices_rw(Random& _rand)
 
 void VortexSheet::reflect(VortexBlobs& vortex)
 {
-	Vector_un closest_panel(size());
-	Vector min_dist(size());
+	Vector_un closest_panel(vortex.size());
+	Vector min_dist(vortex.size());
 	Vector _mirror(2);
 
 	double x_init, z_init, x_0, z_0, x_1, z_1;
 
 	double dx, dz, dr, min_prev;
 
-	for (unsigned i = 0; i < size(); i++) {
+	for (unsigned i = 0; i < vortex.size(); i++) {
 		min_dist(i) = 0;
 		closest_panel(i) = 0;
 
@@ -150,13 +150,14 @@ int VortexSheet::inside_body(const double& xcoor, const double& zcoor)
 
 
     int cn = 0; 
+    
     for (unsigned i = 0; i < size(); i++) {
 		if (((z(i) <= zcoor) && (z(i + 1) > zcoor))
 		    || ((z(i) > zcoor) && (z(i + 1) <= zcoor))) {
 			float vt =
 			    (float)(zcoor - z(i)) / (z(i + 1) - z(i));
 			if (xcoor < x(i) + vt * (x(i + 1) - x(i))) {
-				++cn; //This the number of the panel that the particle crossed
+				++cn;
 			}
 		}
 	}

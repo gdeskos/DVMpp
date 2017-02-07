@@ -77,7 +77,6 @@ if(plot_vorticity)
     scrsz = get(0,'ScreenSize');
     fig=figure('Position',[100 scrsz(4)/2-100 scrsz(3)*2/3 scrsz(4)/2]);
     colormap(fig,'jet')
-    caxis([-0.05 0.05])
     colorbar
     if (save_avi)
         if isempty(avi_name)
@@ -92,19 +91,20 @@ if(plot_vorticity)
     
     index_start = 1;
     
+
+    
     for n=1:steps-1
         index_end = index_start + numvb(n);
         plot(bodyx,bodyz,'k-');hold on;
         scatter(x(index_start:index_end),z(index_start:index_end),4,circ(index_start:index_end),'filled');
         title(['t = ',num2str(t(index_start),'%5.3f')]);
         ylabel('z[m]');
-        xlim([-2*max(bodyx) 20*max(bodyx)]);
-        ylim([-7*max(bodyz) 7*max(bodyz)]);
-        
+        xlim([-2*max(bodyx) 7*max(bodyx)]);
+        ylim([-5*max(bodyz) 5*max(bodyz)]);
+        axis equal;
         index_start = index_end;
         
-        
-        caxis([-0.02 0.02])
+        caxis([-0.001 0.001])
         colorbar
         
         frame = getframe;
