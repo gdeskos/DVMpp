@@ -22,6 +22,7 @@ VortexSheet::VortexSheet(const XmlHandler &xml)
 	std::string domain = indir + xml.getStringAttribute("io", "domain_file");
 
 	read_input_coord(domain);
+	form_vortex_sheet();
 }
 
 void VortexSheet::read_input_coord(std::string file)
@@ -41,11 +42,41 @@ void VortexSheet::read_input_coord(std::string file)
 	          << " points." << std::endl;
 }
 
+void VortexSheet::form_vortex_sheet()
+{
+	// Create the collocation points
+	auto end = m_x.n_elem - 1;
+	m_xc = 0.5 * (m_x.rows(0, end - 1) + m_x.rows(1, end));
+	m_zc = 0.5 * (m_z.rows(0, end - 1) + m_z.rows(1, end));
+
+	// ds and theta along the vortex sheet
+	Vector dx = m_x.rows(1, end) - m_x.rows(0, end - 1);
+	Vector dz = m_z.rows(1, end) - m_z.rows(0, end - 1);
+
+	m_ds = arma::sqrt(arma::pow(dx, 2) + arma::pow(dz, 2));
+	m_theta = arma::atan2(dz, dx);
+
+	// Outwards facing normals and tangentials
+	m_enx = dz / m_ds;
+	m_enz = -dx / m_ds;
+	m_etx = -m_enz;
+	m_etz = m_enx;
+
+	// Inwards facing normals and tangentials
+	// m_etx = arma::cos(m_theta);
+	// m_etz = arma::sin(m_theta);
+	// m_enx = -m_etz;
+	// m_enz = m_etx;
+
+	// Make sure the surface vorticity is the correct size
+	m_gamma.copy_size(m_xc);
+
+	std::cout << "Created vortex sheet of size " << m_gamma.n_elem << std::endl;
+}
+
 void VortexSheet::resize(unsigned size)
 {
 	m_gamma.set_size(size);
-	m_x.set_size(size+1);
-	m_z.set_size(size+1);
 	m_xc.set_size(size);
 	m_zc.set_size(size);
 	m_theta.set_size(size);

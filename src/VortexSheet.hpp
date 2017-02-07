@@ -37,6 +37,8 @@ class VortexSheet
 	/** \param domain domain file to be read */
 	void read_input_coord(std::string domain);
 
+	/// Form the vortex sheet from the body coordinates
+	void form_vortex_sheet();
 
 	public:
 	VortexSheet();

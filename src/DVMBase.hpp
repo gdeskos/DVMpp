@@ -106,9 +106,6 @@ class DVMBase
 	/** @name Vortex sheet related methods */
 	///@{
 
-	/// Initialise the vortex sheet
-	void form_vortex_sheet();
-
 	/// Solve for the vortex sheet
 	void solvevortexsheet(VortexBlobs &blobs);
 	///@}

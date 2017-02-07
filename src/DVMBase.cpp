@@ -72,7 +72,6 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 void DVMBase::solve()
 {
 	// First timestep
-	form_vortex_sheet();
 	compute_influence_matrix();
 
 	// Timeloop
@@ -163,59 +162,6 @@ void DVMBase::init_outputs()
 	          << "u [m/s]"
 	          << "\t"
 	          << "w{m/s" << std::endl;
-}
-
-void DVMBase::form_vortex_sheet()
-{
-	// Initialize vortex sheet
-	m_vortsheet.resize(m_body.size() - 1);
-	double dx, dz, theta;
-
-	// Define the characteristics of the vortex sheet
-	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
-        
-        // Assign the body points to the vortsheet, remember this is m_vortsheet.size()+1
-		m_vortsheet.m_x(i)=m_body.x[i];
-		m_vortsheet.m_z(i)=m_body.z[i];
-		m_vortsheet.m_x(i+1)=m_body.x[i+1];
-		m_vortsheet.m_z(i+1)=m_body.z[i+1];
-        
-        // collocation points on the vortex sheet
-		m_vortsheet.m_xc(i) = 0.5 * (m_body.x[i] + m_body.x[i + 1]);
-		m_vortsheet.m_zc(i) = 0.5 * (m_body.z[i] + m_body.z[i + 1]);
-
-		// ds and theta along the vortex sheet
-		dx = m_body.x[i + 1] - m_body.x[i];
-		dz = m_body.z[i + 1] - m_body.z[i];
-		theta = atan2(dz, dx);
-
-		m_vortsheet.m_ds(i) = std::sqrt(std::pow(dx, 2) + std::pow(dz, 2));
-		m_vortsheet.m_theta(i) = theta;
-
-		// normals and tangentials
-
-		// Inwards facing
-		// m_vortsheet.etx(i) = cos(theta);
-		// m_vortsheet.etz(i) = sin(theta);
-		// m_vortsheet.enx(i) = -m_vortsheet.etz(i);
-		// m_vortsheet.enz(i) = m_vortsheet.etx(i);
-
-		// Outwards facing
-		m_vortsheet.m_enx(i) = dz / m_vortsheet.m_ds(i);
-		m_vortsheet.m_enz(i) = -dx / m_vortsheet.m_ds(i);
-		m_vortsheet.m_etx(i) = -m_vortsheet.m_enz(i);
-		m_vortsheet.m_etz(i) = m_vortsheet.m_enx(i);
-	}
-
-	// m_Gamma_abs.resize(m_vortsheet.size());
-
-	m_vortsheet.print_collocation();
-	m_vortsheet.print_unit_vectors();
-
-	std::cout << "Created vortex sheet of size " << m_vortsheet.size()
-	          << std::endl;
-
-	// throw std::string("Stop here");
 }
 
 void DVMBase::compute_influence_matrix()
