@@ -171,8 +171,11 @@ std::string XmlHandler::form_key(const char *level, const char *parameter) const
 
 void XmlHandler::buildOptionMap()
 {
-	m_option_map.insert({"constants_density", {"constants", "density", "val", "specific gravity of fluid", ">0"}});
+	m_option_map.insert({"algorithms_surface_crossing", {"algorithms", "surface_crossing", "string", "surface-crossing algorithm", "DELETE ABSORB REFLECT"}});
+	
+    m_option_map.insert({"constants_density", {"constants", "density", "val", "specific gravity of fluid", ">0"}});
 	m_option_map.insert({"constants_nu", {"constants", "nu", "val", "kinematic viscosity [m^2 / s]", ">0"}});
+	m_option_map.insert({"constants_max_Gamma", {"constants", "max_Gamma", "val", "maximum circulation of nascent vortices", ">0"}});
 	m_option_map.insert({"constants_max_NumPanelVort", {"constants", "max_NumPanelVort", "val", "maximum number of panel vortices", ">0"}});
 	m_option_map.insert({"constants_cutoff_exp", {"constants", "cutoff_exp", "val", "cutoff exp", "none"}});
 	m_option_map.insert({"constants_seed", {"constants", "seed", "val", "seed for rng. <0 random, >=0 seed", "none"}});

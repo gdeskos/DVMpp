@@ -45,7 +45,8 @@ class DVMBase
 	double m_nu; ///< Kinematic viscosity
 	double m_Ux; ///< Free stream velocity in x
 	double m_Uz; ///< Free stream velocity in ym_n, m_np;
-	double m_n; ///< Number of body points
+	double m_Ur; ///< Magnitute of the free stream velocity in the magnitude of the flow
+    double m_n; ///< Number of body points
 
 	double m_cutoff_exp;          ///< Cut-off exponent q used in sigma=h^q according to Perlman 1985 (JCP, 1985,59, 200-223)
 
@@ -53,6 +54,7 @@ class DVMBase
 	unsigned m_step;              ///< Current timestep
 	unsigned m_steps;             ///< Total timesteps
 	unsigned m_maxNumPanelVort;   ///< Maximum number of panel vortices
+    double m_maxGamma;          ///< Maximum circulation for the nascent vortices
     std::string m_rw_cross;       ///< Random Walk boundary crossing algorithm selected between (DELETE REFLECT ABSORB)
 
 	/** @name Reading and writing */
@@ -84,7 +86,14 @@ class DVMBase
 		RK4    ///< Runge-Kutta 4th order
 	};
 	Scheme m_scheme; ///< Time-stepping scheme
-
+    
+    /// Definition surface_crossing algorithm 
+	enum SurfaceCross {
+		DELETE,     ///< Deletes the vortices entering the body 
+		ABSORB,     ///< Absorbs the vortices the vortices crossing the boundary, detains them for one time step and their strngth is added to the next set of nascent vortices switching also the release to the Q-distribution
+		REFLECT     ///< Reflects the vortices entering the body back to their image position
+	};
+	SurfaceCross m_surfcross; ///< Surface crossing algorithm 
 
 	/** @name General Initialisation */
 	///@{
@@ -118,12 +127,6 @@ class DVMBase
 
 	/** @name Methods related to diffusion */
 	///@{
-
-	/// Move the point vortices using the random walk
-	void diffrw();
-
-	/// Reflect particles generated released inside the body outside
-	void reflect();
 
 	/// Write the output file
 	/** Happens at each time step */

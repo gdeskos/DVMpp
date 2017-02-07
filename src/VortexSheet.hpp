@@ -5,6 +5,10 @@
 #include "XmlHandler.hpp"
 #include "VortexBlobs.hpp"
 #include "Random.hpp"
+#include <string>
+#include <sstream>
+#include <string.h>
+#include <fstream>
 #include <iostream>
 #include <tuple>
 #include <cassert>
@@ -30,10 +34,12 @@ class VortexSheet
 	double m_rho; ///< Density of fluid
     double m_nu;  ///< Kinematic viscosity of the fluid
 	double m_dt;  ///< Timestep
+    double m_maxGamma; ///< maximum circulation of the nascent vortex
     unsigned m_maxNumPanelVort; /// Maximum number of vortices allowed in each panel
     double   m_cutoff_exp;      /// Cutoff distance coefficient q, according to Perlman 1985 0.5<q<1 
 	double m_fx; ///< Force in x-direction
 	double m_fz; ///< Force in z-direction
+	
 
 	public:
 	VortexSheet();
@@ -48,18 +54,20 @@ class VortexSheet
     VortexBlobs release_nascent_vortices_rw(Random& _rand);
    
     /// Efficient Surface Algorithm for Random Walk (Smith and Stansby 1989, JCP paper)
-    void rw_surface_algorithm();
+
+    /// Reflects the vortices the the image location from the panels
+    void reflect(VortexBlobs &vortex);
 
     /// Find Inside the vortex sheet vortices
     int inside_body(const double &xcoor, const double &zcoor);
 
     /// Mirror the particle from a panel 
-    std::vector<double> mirror(const double &x_init,
-                               const double &z_init,
-                               const double &x_0,
-                               const double &z_0,
-                               const double &x_1,
-                               const double &z_1);
+    Vector mirror(const double &x_init,
+                  const double &z_init,
+                  const double &x_0,
+                  const double &z_0,
+                  const double &x_1,
+                  const double &z_1);
 
 	/// Compute the forces on the body
 	void compute_loads(double Urel);
