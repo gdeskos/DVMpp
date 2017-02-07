@@ -45,7 +45,8 @@ pugi::xml_node XmlHandler::getNode(const char *level,
 		} else {
 			// case (2)
 			err << "xml error: Are you trying to add an option without "
-			       "updating XmlHandler::m_option_map?";
+			       "updating XmlHandler::m_option_map?\nRequested option: <"
+			    << level << "><" << parameter << ">";
 			throw err.str();
 		}
 	}
