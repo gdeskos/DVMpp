@@ -24,6 +24,8 @@ class VortexSheet
 	Vector m_etx;        ///< x-coor tangential unit vector
 	Vector m_etz;        ///< z-coor tangential unit vector
 
+	Matrix m_infM; ///< Influence matrix
+
 	private:
 	double m_rho; ///< Density of fluid
 	double m_dt;  ///< Timestep
@@ -39,6 +41,10 @@ class VortexSheet
 
 	/// Form the vortex sheet from the body coordinates
 	void form_vortex_sheet();
+
+	/// Compute the influence matrix
+	/** Computed using the coefficients after Morgenthal */
+	void compute_influence_matrix();
 
 	public:
 	VortexSheet();

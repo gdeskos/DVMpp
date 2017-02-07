@@ -23,6 +23,7 @@ VortexSheet::VortexSheet(const XmlHandler &xml)
 
 	read_input_coord(domain);
 	form_vortex_sheet();
+	compute_influence_matrix();
 }
 
 void VortexSheet::read_input_coord(std::string file)
@@ -72,6 +73,75 @@ void VortexSheet::form_vortex_sheet()
 	m_gamma.copy_size(m_xc);
 
 	std::cout << "Created vortex sheet of size " << m_gamma.n_elem << std::endl;
+}
+
+void VortexSheet::compute_influence_matrix()
+{
+	//========================================================================
+	// Compute influence matrix according to coefficients after Mogenthal
+	// =======================================================================
+
+	// Follow Morgenthal (2002)
+	unsigned Nl = m_gamma.n_elem;
+
+	std::cout << "Nl = " << Nl << "\n";
+
+	m_infM.set_size(Nl + 1, Nl);
+
+	double c1, c2, c3, c4, c5, c6, c7, c9;
+	Matrix p, q;
+	p.set_size(Nl, Nl);
+	q.set_size(Nl, Nl);
+
+	for (unsigned i = 0; i < Nl; i++) {
+		double xci = m_xc(i);
+		double zci = m_zc(i);
+		double thetai = m_theta(i);
+
+		for (unsigned j = 0; j < Nl; j++) {
+			if (i == j) {
+				p(i, j) = -1.0;
+				q(i, j) = 1.0;
+			} else {
+
+				double xj = m_x(j);
+				double zj = m_z(j);
+				double thetaj = m_theta(j);
+
+				double dsj = m_ds(j);
+
+				c1 = -(xci - xj) * std::cos(thetaj) - (zci - zj) * std::sin(thetaj);
+				c2 = std::pow(xci - xj, 2) + std::pow(zci - zj, 2);
+				c3 = std::sin(thetai - thetaj);
+				c4 = std::cos(thetai - thetaj);
+				c5 = (xci - xj) * std::sin(thetaj) - (zci - zj) * std::cos(thetaj);
+				c6 = std::log(1.0 + dsj * ((dsj + 2 * c1) / c2));
+				c7 = std::atan2((c5 * dsj), (c2 + c1 * dsj));
+				c9 = (xci - xj) * std::cos(thetai - 2.0 * thetaj)
+				     - (zci - zj) * std::sin(thetai - 2.0 * thetaj);
+
+				q(i, j) =
+				    c4 + 0.5 * c9 * c6 / dsj - ((c1 * c3 + c4 * c5) * c7) / dsj;
+				p(i, j) = 0.5 * c4 * c6 + c3 * c7 - q(i, j);
+			}
+		}
+	}
+
+	for (unsigned i = 0; i < Nl; i++) {
+		m_infM(i, 0) = -m_rpi2 * (p(i, 0) + q(i, Nl - 1));
+
+		for (unsigned j = 1; j < Nl; j++) {
+			m_infM(i, j) = -m_rpi2 * (p(i, j) + q(i, j - 1));
+		}
+	}
+
+	// Enforcing the total circulation
+	for (unsigned j = 0; j < Nl; j++) {
+		m_infM(Nl, j) = m_ds(j);
+	}
+
+	std::cout << "Computed influence matrix of size " << arma::size(m_infM)
+	          << " after Kuette and Chow" << std::endl;
 }
 
 void VortexSheet::resize(unsigned size)

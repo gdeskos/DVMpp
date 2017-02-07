@@ -99,9 +99,6 @@ class DVMBase
 	void init_outputs();
 	///@}
 
-	/// Compute the influence matrix
-	/** Computed using the coefficients after Morgenthal */
-	void compute_influence_matrix();
 
 	/** @name Vortex sheet related methods */
 	///@{

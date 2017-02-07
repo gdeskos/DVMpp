@@ -71,9 +71,6 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 
 void DVMBase::solve()
 {
-	// First timestep
-	compute_influence_matrix();
-
 	// Timeloop
 	for (unsigned j = 1; j <= get_steps(); j++) {
 
@@ -162,84 +159,6 @@ void DVMBase::init_outputs()
 	          << "u [m/s]"
 	          << "\t"
 	          << "w{m/s" << std::endl;
-}
-
-void DVMBase::compute_influence_matrix()
-{
-
-	//========================================================================
-	// Compute influence matrix according to coefficients after Mogenthal
-	// =======================================================================
-
-	std::cout << "m_body.size() = " << m_body.size() << std::endl;
-	std::cout << "m_vortsheet.size() = " << m_vortsheet.size() << std::endl;
-
-	// Follow Morgenthal (2002)
-
-	unsigned Nl = m_vortsheet.size();
-
-	m_infM.set_size(Nl + 1, Nl);
-
-	std::cout << "m_infM.size " << m_infM.size() << std::endl;
-
-	double c1, c2, c3, c4, c5, c6, c7, c9;
-	Matrix p, q;
-	p.set_size(Nl, Nl);
-	q.set_size(Nl, Nl);
-
-	for (unsigned i = 0; i < Nl; i++) {
-
-		double xci = m_vortsheet.m_xc(i);
-		double zci = m_vortsheet.m_zc(i);
-		double thetai = m_vortsheet.m_theta(i);
-
-		for (unsigned j = 0; j < Nl; j++) {
-			if (i == j) {
-				p(i, j) = -1.0;
-				q(i, j) = 1.0;
-			} else {
-
-				double xj = m_body.x[j];
-				double zj = m_body.z[j];
-				double thetaj = m_vortsheet.m_theta(j);
-
-				double dsj = m_vortsheet.m_ds(j);
-
-				c1 = -(xci - xj) * cos(thetaj) - (zci - zj) * sin(thetaj);
-				c2 = std::pow(xci - xj, 2) + std::pow(zci - zj, 2);
-				c3 = sin(thetai - thetaj);
-				c4 = cos(thetai - thetaj);
-				c5 = (xci - xj) * sin(thetaj) - (zci - zj) * cos(thetaj);
-				c6 = log(1.0 + dsj * ((dsj + 2 * c1) / c2));
-				c7 = atan2((c5 * dsj), (c2 + c1 * dsj));
-				c9 = (xci - xj) * cos(thetai - 2.0 * thetaj)
-				     - (zci - zj) * sin(thetai - 2.0 * thetaj);
-
-				q(i, j) =
-				    c4 + 0.5 * c9 * c6 / dsj - ((c1 * c3 + c4 * c5) * c7) / dsj;
-				p(i, j) = 0.5 * c4 * c6 + c3 * c7 - q(i, j);
-			}
-		}
-	}
-
-	for (unsigned i = 0; i < Nl; i++) {
-		m_infM(i, 0) = -m_rpi2 * (p(i, 0) + q(i, Nl - 1));
-
-		for (unsigned j = 1; j < Nl; j++) {
-			m_infM(i, j) = -m_rpi2 * (p(i, j) + q(i, j - 1));
-		}
-	}
-
-	// Enforcing the total circulation
-	for (unsigned j = 0; j < Nl; j++) {
-		m_infM(Nl, j) = m_vortsheet.m_ds(j);
-	}
-
-	// Print the matrix
-	m_infM.print();
-
-	std::cout << "Computed influence matrix of size " << m_infM.size()
-	          << " after Kuette and Chow" << std::endl;
 }
 
 double DVMBase::get_time()
