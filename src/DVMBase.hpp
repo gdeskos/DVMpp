@@ -2,7 +2,6 @@
 #define DVMBASE
 
 #include "BaseTypes.hpp"
-#include "Body.hpp"
 #include "VortexBlobs.hpp"
 #include "VortexSheet.hpp"
 #include "XmlHandler.hpp"
@@ -25,7 +24,6 @@ class DVMBase
 	private:
 	VortexBlobs m_vortex;    ///< The point vortices
 	VortexSheet m_vortsheet; ///< The vortex sheet
-	Body m_body;             ///< The solid body
 	VortexBlobs m_probe;     ///< The probe???
 
 	Matrix m_infM; ///< Influence matrix
