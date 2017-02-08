@@ -29,7 +29,7 @@ if (Boost_FOUND)
 endif()
 
 
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -Wall -Wextra -pipe ${OpenMP_CXX_FLAGS}")
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11 -O3 -march=native -Wall -Wextra -pipe ${OpenMP_CXX_FLAGS}")
 
 if (CMAKE_BUILD_TYPE STREQUAL "Release")
 	add_definitions(" -DARMA_NO_DEBUG")
