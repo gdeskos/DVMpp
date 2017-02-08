@@ -4,6 +4,9 @@ set(DVM_SOURCE_FILES DVMBase.cpp main.cpp VortexBlobs.cpp
 add_executable(DVM++ ${DVM_SOURCE_FILES})
 
 find_package(Armadillo REQUIRED)
+if (${ARMADILLO_VERSION_STRING} VERSION_LESS 7.6)
+	message(FATAL_ERROR "Armadillo version must be at least 7.6\nFound: ${ARMADILLO_VERSION_STRING}")
+endif()
 include_directories(${ARMADILLO_INCLUDE_DIRS})
 target_link_libraries(DVM++ ${ARMADILLO_LIBRARIES})
 
