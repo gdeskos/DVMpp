@@ -125,20 +125,14 @@ void XmlHandler::check_string(const char* level, const char *parameter, std::str
 
 	// Make sure we have a required value
 	if (req.compare("none") == 0) {
-		// Just return string as is - it is not compared against elsewhere
 		return;
 	}
-
-	// Avoid case errors by making it lower case - changes underlying string!
-	std::transform(attr.begin(), attr.end(), attr.begin(), [](unsigned char c) {
-		return std::tolower(c);
-	});
 
 	if (req.find(attr) == std::string::npos) {
 		// can't find the given attr in the required string
 		std::ostringstream err;
 		err << "xml error: <" << level << "><" << parameter
-		    << "> invalid option.\nOptions are: " << req;
+		    << "> invalid option.\nOptions are (case sensitive): " << req;
 		throw err.str();
 	}
 }
