@@ -31,9 +31,6 @@ class VortexBlobs
 	public:
 	VortexBlobs();
 
-	/// Constructor
-	/** \param xml input xml file*/
-	VortexBlobs(const XmlHandler &xml);
     /// Constructor
     /** \creates N number of vortices and sets them to zero*/
     VortexBlobs(const unsigned& N);
@@ -44,8 +41,8 @@ class VortexBlobs
     /// Biot-Savart relationship
 	void biotsavart();
 
-    /// Diffusion through random walk
-    void diffusion_random_walk(Random& _rand,const double & nu, const double &dt);
+	/// Diffusion through random walk
+	void diffusion_random_walk(Random &_rand, double nu, double dt);
 
 	/// Find the total circulation
 	double totalcirc();

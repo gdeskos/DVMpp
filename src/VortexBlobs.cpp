@@ -5,15 +5,9 @@
 //************************* Constructors *************************************//
 VortexBlobs::VortexBlobs()
 {
-	// Don't put anything in here, it is never called!
-}
-
-VortexBlobs::VortexBlobs(const XmlHandler &xml)
-{
 	m_pi = 4.0 * atan(1.0);
 	m_rpi2 = 1.0 / (2.0 * m_pi);
 }
-
 
 // ********************************* Public Methods *****************************//
 VortexBlobs::VortexBlobs(const unsigned &N)
@@ -41,21 +35,20 @@ void VortexBlobs::resize(unsigned size)
 void VortexBlobs::append_vortices(VortexBlobs& NewVortBlobs) 
 {
     // Get the number of Vortices
-    auto Nold=size();
-    auto Nnew=NewVortBlobs.size();
-    for (unsigned i=0; i<Nnew;i++)
-    {
-    m_ID.push_back(Nold+NewVortBlobs.m_ID[i]);
-    }
-    m_x.insert_rows(m_x.n_elem, NewVortBlobs.m_x);
+	auto Nold = size();
+	auto Nnew = NewVortBlobs.size();
+	for (unsigned i = 0; i < Nnew; i++) {
+		m_ID.push_back(Nold + NewVortBlobs.m_ID[i]);
+	}
+	m_x.insert_rows(m_x.n_elem, NewVortBlobs.m_x);
 	m_z.insert_rows(m_z.n_elem, NewVortBlobs.m_z);
 	m_circ.insert_rows(m_circ.n_elem, NewVortBlobs.m_circ);
-	m_sigma.insert_rows(m_sigma.n_elem, NewVortBlobs.m_sigma); 
+	m_sigma.insert_rows(m_sigma.n_elem, NewVortBlobs.m_sigma);
 	m_u.insert_rows(m_u.n_elem, NewVortBlobs.m_u);
 	m_w.insert_rows(m_w.n_elem, NewVortBlobs.m_w);
 	m_uvs.insert_rows(m_uvs.n_elem, NewVortBlobs.m_uvs);
 	m_wvs.insert_rows(m_wvs.n_elem, NewVortBlobs.m_wvs);
-	m_omega.insert_rows(m_omega.n_elem, NewVortBlobs.m_omega); 
+	m_omega.insert_rows(m_omega.n_elem, NewVortBlobs.m_omega);
 }
 void VortexBlobs::biotsavart()
 {
@@ -93,9 +86,7 @@ void VortexBlobs::biotsavart()
 	}
 }
 
-void VortexBlobs::diffusion_random_walk(Random& _rand, 
-                                        const double & nu,
-                                        const double & dt)
+void VortexBlobs::diffusion_random_walk(Random &_rand, double nu, double dt)
 {
 	double R1, R2, rrw, thetarw;
 

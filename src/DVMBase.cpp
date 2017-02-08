@@ -6,7 +6,7 @@
 #include <iostream>
 #include <cassert>
 
-DVMBase::DVMBase(XmlHandler &xml) : m_vortex(xml), m_vortsheet(xml), m_body(xml)
+DVMBase::DVMBase(XmlHandler &xml) : m_vortsheet(xml), m_body(xml)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_step = 0;
