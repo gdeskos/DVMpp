@@ -299,27 +299,20 @@ VortexBlobs VortexSheet::release_nascent_vortices_rw(Random &_rand)
 	// First we need to determine how many of these vortices will be created at
 	// each panel. This is in accordance with Morgenthal PhD 4.3.6 Vortex release
 	// algorithm (eq. 4.108)
-	Vector_un PanelNewVort(Nvs);       // Panel's new vortices
-
 	Vector PanelCirc = m_gamma % m_ds; // Panel's total circulation
 
+	// Absolute value of the panel vorticity
 	Vector AbsPanelCirc =
-	    arma::abs(PanelCirc / arma::max(PanelCirc)
-	              * m_maxNumPanelVort); // Absolute value of the panel vorticity
+	    arma::abs(PanelCirc / arma::max(PanelCirc) * m_maxNumPanelVort);
 
-	Vector Circ_new(Nvs);
-	// GD---> Should not need to do a loop here. Unfortunately for some reason
-	// armadillo does not allow me to do
-	// PanelNewVort=arma::round(AbsPanelCirc)+arma::ones(Nvs,1), perhaps
-	// MAB can fix this.
-	for (unsigned i = 0; i < Nvs; i++) {
-		// Number of released vortices per panel
-		PanelNewVort(i) = std::floor(AbsPanelCirc(i)) + 1;
-		assert(PanelNewVort(i) > 0);
-
-		// Circulation of each vortex we release from the ith panel
-		Circ_new(i) = PanelCirc(i) / PanelNewVort(i);
+	Vector PanelNewVort = arma::floor(AbsPanelCirc) + arma::ones(Nvs);
+	// Make sure the new panel vortices are non-negative
+	if (!arma::all(PanelNewVort > 1.0e-15)) {
+		throw std::string("VortexSheet::release_nascent_vortices_rw -> "
+		                  "negative PanelNewVort");
 	}
+
+	Vector Circ_new = PanelCirc / PanelNewVort;
 
 	// Number of the new vortices.
 	// if we set the maximum number of vortices from each panel=1, then Nrv=Nsv
