@@ -192,7 +192,7 @@ void XmlHandler::buildOptionMap()
 	m_option_map.insert({"probe_x", {"probe", "x", "val", "x-coordinate of the probe", "none"}});
 	m_option_map.insert({"probe_z", {"probe", "z", "val", "z-coordinate of the probe", "none"}});
 	
-	m_option_map.insert({"time_scheme", {"time", "scheme", "string", "time-stepping scheme", "euler RK2 RK4"}});
+	m_option_map.insert({"time_scheme", {"time", "scheme", "string", "time-stepping scheme", "euler RK3 RK4"}});
 	m_option_map.insert({"time_dt", {"time", "dt", "val", "time step [s]", ">0"}});
 	m_option_map.insert({"time_steps", {"time", "steps", "val", "total number of timesteps", ">0"}});
 }

@@ -59,8 +59,8 @@ class DVMBase
 	/// Definition time-stepping scheme
 	enum Scheme {
 		Euler, ///< Euler explicit
-		RK2,   ///< Runge-Kutta 2nd order
-		RK4    ///< Runge-Kutta 4th order
+		RK3,   ///< Low-storage Runge-Kutta 3nd order
+		RK4    ///< Low-storage Runge-Kutta 4th order
 	};
 	Scheme m_scheme; ///< Time-stepping scheme
     
