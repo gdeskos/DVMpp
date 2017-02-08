@@ -85,15 +85,15 @@ class VortexSheet
     void reflect(VortexBlobs &vortex);
 
     /// Find Inside the vortex sheet vortices
-    int inside_body(const double &xcoor, const double &zcoor);
+    int inside_body(double xcoor, double zcoor);
 
-    /// Mirror the particle from a panel 
-    Vector mirror(const double &x_init,
-                  const double &z_init,
-                  const double &x_0,
-                  const double &z_0,
-                  const double &x_1,
-                  const double &z_1);
+	/// Mirror the particle from a panel
+	Vector mirror(double x_init,
+	              double z_init,
+	              double x_0,
+	              double z_0,
+	              double x_1,
+	              double z_1);
 
 	/// Compute the forces on the body
 	void compute_loads(double Urel);

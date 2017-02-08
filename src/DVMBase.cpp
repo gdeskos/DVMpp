@@ -67,16 +67,15 @@ void DVMBase::init(XmlHandler &xml, std::string timestamp)
 	} else if (scheme.compare("RK4") == 0) {
 		m_scheme = Scheme::RK4;
 	} // Invalid cases dealt with by the xml handler
-    
-    std::string surfacecross = "REFLECT";//getStr("algorithms", "surface_crossing");
-    if (surfacecross.compare("DELETE") == 0) {
+
+	auto surfacecross = getStr("algorithms", "surface_crossing");
+	if (surfacecross.compare("DELETE") == 0) {
 		m_surfcross = SurfaceCross::DELETE;
 	} else if (surfacecross.compare("ABSORB") == 0) {
 		m_surfcross = SurfaceCross::ABSORB;
 	} else if (surfacecross.compare("REFLECT") == 0) {
 		m_surfcross = SurfaceCross::REFLECT;
 	} // Invalid cases dealt with by the xml handler
-	
 }
 
 void DVMBase::solve()
@@ -105,20 +104,22 @@ void DVMBase::compute_step()
 	m_vortsheet.compute_loads(m_Ur);
 	
 	convect();
-    
-    // The diffusion substep is split into two steps
-    // A diffussion problem with only a flux of vorticity in the boundaries dgamma/dn=a 
-    VortexBlobs NewVortices=m_vortsheet.release_nascent_vortices_rw(m_rand); 
-    m_vortex.append_vortices(NewVortices); 
-	
-    m_vortex.diffusion_random_walk(m_rand,m_nu,m_dt); // A diffussion problem in an infinite domain
-    
-    // If a large time step is used some vortices may cross the boundary due to random walk! 
-    // Care is taken of these vortices by 1) Deleting them, 2) Absorbing them, 3) Reflecting them back to the flow
-    m_vortsheet.reflect(m_vortex);		
-	
-}
 
+	// The diffusion substep is split into two steps
+	// A diffussion problem with only a flux of vorticity in the boundaries
+	// dgamma/dn=a
+	VortexBlobs NewVortices = m_vortsheet.release_nascent_vortices_rw(m_rand);
+	m_vortex.append_vortices(NewVortices);
+
+	// A diffussion problem in an infinite domain
+	m_vortex.diffusion_random_walk(m_rand, m_nu, m_dt);
+
+	// If a large time step is used some vortices may cross the boundary due to
+	// random walk!
+	// Care is taken of these vortices by 1) Deleting them, 2) Absorbing them,
+	// 3) Reflecting them back to the flow
+	m_vortsheet.reflect(m_vortex);
+}
 
 void DVMBase::init_outputs()
 {

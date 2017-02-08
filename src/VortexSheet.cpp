@@ -150,7 +150,6 @@ void VortexSheet::compute_influence_matrix()
 
 	std::cout << "Computed influence matrix of size " << arma::size(m_infM)
 	          << " after Kuette and Chow" << std::endl;
-
 }
 
 void VortexSheet::solvevortexsheet(VortexBlobs &blobs)
@@ -427,11 +426,11 @@ void VortexSheet::reflect(VortexBlobs& vortex)
 	}
 }
 
-int VortexSheet::inside_body(const double& xcoor, const double& zcoor)
+int VortexSheet::inside_body(double xcoor, double zcoor)
 {
-    int cn = 0; 
-    
-    for (unsigned i = 0; i < size(); i++) {
+    int cn = 0;
+
+	for (unsigned i = 0; i < size(); i++) {
 		if (((m_z(i) <= zcoor) && (m_z(i + 1) > zcoor))
 		    || ((m_z(i) > zcoor) && (m_z(i + 1) <= zcoor))) {
 
@@ -444,12 +443,12 @@ int VortexSheet::inside_body(const double& xcoor, const double& zcoor)
 	return (cn & 1);
 }
 
-Vector VortexSheet::mirror(const double &x_init,
-                           const double &z_init,
-                           const double &x_0,
-                           const double &z_0,
-                           const double &x_1,
-                           const double &z_1)
+Vector VortexSheet::mirror(double x_init,
+                           double z_init,
+                           double x_0,
+                           double z_0,
+                           double x_1,
+                           double z_1)
 {
 	Vector p2(2);
 	double dx, dz, a, b;
@@ -468,32 +467,31 @@ Vector VortexSheet::mirror(const double &x_init,
 
 void VortexSheet::compute_loads(double Ur)
 {
-	Vector P(size());
+	Vector P(size(), arma::fill::zeros);
 	Vector Dp = -m_rho / m_dt * (m_gamma % m_ds);
 
-    for (unsigned i=0;i<size()-1;i++)
-    {
-        P(i+1)=P(i)+Dp(i);
-    }
-   
-    // Finding the average of the two pressures at the boundary
-    for (unsigned i=0;i<size()-1;i++)
-    {
-        P(i)=0.5*(P(i)+P(i+1));
-    }
+	for (unsigned i = 0; i < size() - 1; i++) {
+		P(i + 1) = P(i) + Dp(i);
+	}
 
-    P(size()-1)=0.5*(P(size()-1)+P(0));
-	double pmax=arma::max(P);
-    double pref=0.5*m_rho*Ur*Ur;
+	// Finding the average of the two pressures at the boundary
+	for (unsigned i = 0; i < size() - 1; i++) {
+		P(i) = 0.5 * (P(i) + P(i + 1));
+	}
 
-    P += (pref-pmax)*arma::ones(size(),1); 
+	P(size() - 1) = 0.5 * (P(size() - 1) + P(0));
+	double pmax = arma::max(P);
+	double pref = 0.5 * m_rho * Ur * Ur;
 
-    // To find the forces we need to measure on the particle
+	P += (pref - pmax) * arma::ones(size(), 1);
+
+	// To find the forces we need to measure on the particle
     // we need to change sign 
     m_fx = -arma::sum(P % m_enx % m_ds);
 	m_fz = -arma::sum(P % m_enz % m_ds);
-    
-    std::cout<<"C_D = "<<m_fx/(0.5*m_rho*1.0*Ur*Ur)<<"\t"<<"C_L = "<<m_fz/(0.5*m_rho*1.0*Ur*Ur)<<std::endl;
+
+	std::cout << "C_D = " << m_fx / (0.5 * m_rho * 1.0 * Ur * Ur) << "\t"
+	          << "C_L = " << m_fz / (0.5 * m_rho * 1.0 * Ur * Ur) << std::endl;
 }
 
 unsigned VortexSheet::size()
