@@ -78,9 +78,8 @@ int main(int argc, char *argv[])
 		std::string stamp = oss.str();
 		std::cout << "File timestamp is " << stamp << std::endl;
 
-		DVMBase dvm(xml);
+		DVMBase dvm(xml, stamp);
 
-		dvm.init(xml, stamp);
 		dvm.init_outputs();
 
         auto outdir = xml.getStringAttribute("io", "output_dir");

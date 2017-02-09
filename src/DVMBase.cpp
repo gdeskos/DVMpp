@@ -6,15 +6,12 @@
 #include <iostream>
 #include <cassert>
 
-DVMBase::DVMBase(XmlHandler &xml) : m_vortsheet(xml)
+DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp) : m_vortsheet(xml)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_step = 0;
 	m_rpi2 = 1.0 / (2.0 * m_pi);
-}
 
-void DVMBase::init(XmlHandler &xml, std::string timestamp)
-{
 	m_timestamp = timestamp;
 
 	// Some helpers so we can do less typing

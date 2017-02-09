@@ -76,7 +76,7 @@ class DVMBase
 
 	private:
 	public:
-	DVMBase(XmlHandler &xml);
+	DVMBase(XmlHandler &xml, const std::string &timestamp);
 
 	/// Definition time-stepping scheme
 	enum Scheme {
@@ -101,10 +101,6 @@ class DVMBase
 
 	/** @name General Initialisation */
 	///@{
-
-	/// Initialise the object
-	void init(XmlHandler &xml, std::string timestamp);
-
 	/// Read the input geometry file
 	void read_input_coord();
 
