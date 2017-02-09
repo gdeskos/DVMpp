@@ -21,9 +21,6 @@ class VortexBlobs
 	Vector m_w;     ///< local z-velocity
 	Vector m_uvs;
 	Vector m_wvs;
-	Vector m_omega; ///< Local vorticity
-
-	double m_kernel_threshold; ///< Threshold for the kernel
 
 	private:
 	/// Output filename for the blob data;
@@ -57,10 +54,6 @@ class VortexBlobs
 
 	/// Find the total circulation
 	double totalcirc();
-
-	/// Resize all of the data members
-	/** \param size New size */
-	void resize(unsigned size);
 
 	/// Current number of vortex blobs
 	unsigned size() const;

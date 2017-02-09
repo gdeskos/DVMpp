@@ -29,21 +29,15 @@ VortexBlobs::VortexBlobs(const XmlHandler &xml, const std::string &stamp)
 // ********************************* Public Methods *****************************//
 VortexBlobs::VortexBlobs(const unsigned &N)
 {
-	resize(N);
-}
-
-void VortexBlobs::resize(unsigned size)
-{
-	m_ID.resize(size);
-	m_x.set_size(size);
-	m_z.set_size(size);
-	m_circ.set_size(size);
-	m_sigma.set_size(size);
-	m_u.set_size(size);
-	m_w.set_size(size);
-	m_uvs.set_size(size);
-	m_wvs.set_size(size);
-	m_omega.set_size(size);
+	m_ID.resize(N);
+	m_x.set_size(N);
+	m_z.set_size(N);
+	m_circ.set_size(N);
+	m_sigma.set_size(N);
+	m_u.set_size(N);
+	m_w.set_size(N);
+	m_uvs.set_size(N);
+	m_wvs.set_size(N);
 }
 
 void VortexBlobs::append_vortices(VortexBlobs& NewVortBlobs) 
@@ -62,7 +56,6 @@ void VortexBlobs::append_vortices(VortexBlobs& NewVortBlobs)
 	m_w.insert_rows(m_w.n_elem, NewVortBlobs.m_w);
 	m_uvs.insert_rows(m_uvs.n_elem, NewVortBlobs.m_uvs);
 	m_wvs.insert_rows(m_wvs.n_elem, NewVortBlobs.m_wvs);
-	m_omega.insert_rows(m_omega.n_elem, NewVortBlobs.m_omega);
 }
 void VortexBlobs::biotsavart()
 {
@@ -134,8 +127,7 @@ unsigned VortexBlobs::size() const
 	    && (ID_sz != m_u.size())
 	    && (ID_sz != m_w.size())
 	    && (ID_sz != m_uvs.size())
-	    && (ID_sz != m_wvs.size())
-	    && (ID_sz != m_omega.size())) {
+	    && (ID_sz != m_wvs.size())) {
 		throw std::string("Size mismatch in VortexBlobs");
 	}
 	return ID_sz;
