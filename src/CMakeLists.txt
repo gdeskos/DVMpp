@@ -1,5 +1,5 @@
 set(DVM_SOURCE_FILES DVMBase.cpp main.cpp VortexBlobs.cpp
-	VortexSheet.cpp XmlHandler.cpp Random.cpp pugixml.cpp)
+	VortexSheet.cpp Probe.cpp XmlHandler.cpp Random.cpp pugixml.cpp)
 
 add_executable(DVM++ ${DVM_SOURCE_FILES})
 

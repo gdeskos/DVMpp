@@ -4,6 +4,7 @@
 #include "BaseTypes.hpp"
 #include "VortexBlobs.hpp"
 #include "VortexSheet.hpp"
+#include "Probe.hpp"
 #include "XmlHandler.hpp"
 #include "Random.hpp"
 #include "pugiconfig.hpp"
@@ -24,7 +25,7 @@ class DVMBase
 	private:
 	VortexBlobs m_vortex;    ///< The point vortices
 	VortexSheet m_vortsheet; ///< The vortex sheet
-	VortexBlobs m_probe;     ///< The probe???
+	Probe m_probe;           ///< Velocity probe
 
 	Matrix m_infM; ///< Influence matrix
 

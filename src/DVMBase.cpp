@@ -7,7 +7,8 @@
 #include <cassert>
 
 DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
-   : m_vortex(xml, timestamp), m_vortsheet(xml, timestamp)
+    : m_vortex(xml, timestamp), m_vortsheet(xml, timestamp),
+      m_probe(xml, timestamp)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_step = 0;
@@ -121,15 +122,6 @@ void DVMBase::compute_step()
 
 void DVMBase::init_outputs()
 {
-	dev_probe.open(
-	    (m_out_dir + m_timestamp + std::string("_probe.dat")).c_str());
-	dev_probe << m_dt << " # Time Step" << std::endl;
-	dev_probe << m_steps << " # Steps " << std::endl;
-	dev_probe << "Time [s]"
-	          << "\t"
-	          << "u [m/s]"
-	          << "\t"
-	          << "w{m/s" << std::endl;
 }
 
 double DVMBase::get_time()
@@ -164,10 +156,7 @@ void DVMBase::write_outputs()
 
 	m_vortsheet.write_step(m_time);
 
-	for (unsigned i = 0; i < m_probe.size(); i++) {
-		dev_probe << m_time << " " << m_probe.m_u(i) << " " << m_probe.m_w(i)
-		          << std::endl;
-	}
+	m_probe.write_step(m_time);
 }
 
 void DVMBase::convect()
