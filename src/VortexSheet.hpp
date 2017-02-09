@@ -4,6 +4,7 @@
 #include "BaseTypes.hpp"
 #include "XmlHandler.hpp"
 #include "VortexBlobs.hpp"
+#include "Probe.hpp"
 #include "Random.hpp"
 #include <string>
 #include <sstream>
@@ -119,6 +120,10 @@ class VortexSheet
 
 	/// Return the forces in the x and z directions
 	std::tuple<double, double> get_forces();
+
+	/// Calculate the velocity at the probe points
+	/** Updates the probe in place */
+	void probe_velocities(const VortexBlobs &blobs, Probe &probe);
 };
 
 #endif

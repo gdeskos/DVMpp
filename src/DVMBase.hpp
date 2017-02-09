@@ -40,11 +40,6 @@ class DVMBase
 	unsigned m_step;        ///< Current timestep
 	unsigned m_steps;       ///< Total timesteps
 
-
-	// some constants
-	double m_pi;   ///< pi
-	double m_rpi2; ///< 1 / 2pi
-
 	/// Computes a particular timestep
 	void compute_step();
 

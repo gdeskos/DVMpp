@@ -550,3 +550,123 @@ std::tuple<double, double> VortexSheet::get_forces()
 {
 	return std::make_tuple(m_fx, m_fz);
 }
+
+void VortexSheet::probe_velocities(const VortexBlobs &blobs, Probe &probe)
+{
+	double rsigmasqr;
+	double rpi2 = 1.0 / (2.0 * m_pi);
+	double dx_ij, dz_ij, dr_ij2, threshold, xkernel;
+	double dK_ij, zkernel;
+	double x_i, z_i, u_i, w_i;
+
+	// Compute the velocity vector at the probe points
+
+	for (unsigned i = 0; i < probe.size(); i++) {
+		probe.m_u(i) = 0.0;
+		probe.m_w(i) = 0.0;
+	}
+
+	for (unsigned i = 0; i < probe.size(); i++) {
+		x_i = probe.m_x(i);
+		z_i = probe.m_z(i);
+		u_i = 0.0;
+		w_i = 0.0;
+		for (unsigned j = 1; j < blobs.size(); j++) {
+			dx_ij = x_i - blobs.m_x(j);
+			dz_ij = z_i - blobs.m_z(j);
+			dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2);
+
+			threshold = 10 * std::pow(blobs.m_sigma(j), 2);
+			rsigmasqr = 1.0 / std::pow(blobs.m_sigma(j), 2);
+
+			if (dr_ij2 < threshold) {
+				dK_ij = (1.0 - std::exp(-dr_ij2 * rsigmasqr)) / dr_ij2;
+			} else {
+				dK_ij = 1.0 / dr_ij2;
+			}
+
+			xkernel = dK_ij * dz_ij;
+			zkernel = dK_ij * dx_ij;
+			u_i = -xkernel * blobs.m_circ(j);
+			w_i = +zkernel * blobs.m_circ(j);
+			probe.m_u(i) = probe.m_u(i) + u_i;
+			probe.m_w(i) = probe.m_w(i) + w_i;
+		}
+	}
+
+	double c1, c2, c5, c6, c7, c8, c9;
+	Matrix px, py, qx, qy;
+	px.set_size(probe.size(), size());
+	qx.set_size(probe.size(), size());
+	py.set_size(probe.size(), size());
+	qy.set_size(probe.size(), size());
+
+	for (unsigned i = 0; i < probe.size(); i++) {
+
+		probe.m_uvs(i) = 0.0;
+		probe.m_wvs(i) = 0.0;
+	}
+
+	for (unsigned i = 0; i < probe.size(); i++) {
+		for (unsigned j = 1; j < size(); j++) {
+			c1 = -(probe.m_x(i) - m_xc(j)) * cos(m_theta(j))
+			     - (probe.m_z(i) - m_zc(j))
+			           * sin(m_theta(j));
+			c2 = std::pow((probe.m_x(i) - m_xc(j)), 2)
+			     + std::pow((probe.m_z(i) - m_zc(j)), 2);
+			c5 = (probe.m_x(i) - m_xc(j)) * sin(m_theta(j))
+			     - (probe.m_z(i) - m_zc(j))
+			           * cos(m_theta(j));
+			c6 = log(1.0
+			         + m_ds(j) * ((m_ds(j) + 2 * c1) / c2));
+			c7 = atan2((c5 * m_ds(j)), (c2 + c1 * m_ds(j)));
+			c8 = (probe.m_x(i) - m_xc(j))
+			         * sin(-2.0 * m_theta(j))
+			     + (probe.m_z(i) - m_zc(j))
+			           * cos(-2.0 * m_theta(j));
+			c9 = (probe.m_x(i) - m_xc(j))
+			         * cos(-2.0 * m_theta(j))
+			     + (probe.m_z(i) - m_zc(j))
+			           * sin(-2.0 * m_theta(j));
+
+			qx(i, j) = -sin(m_theta(j))
+			           + 0.5 * c8 * c6 / m_ds(j)
+			           + (c1 * cos(m_theta(j))
+			              + c5 * sin(m_theta(j)))
+			                 * c7 / m_ds(j);
+			px(i, j) = -0.5 * c6 * sin(m_theta(j))
+			           - c7 * cos(m_theta(j)) - qx(i, j);
+
+			qy(i, j) = cos(m_theta(j))
+			           + 0.5 * c9 * c6 / m_ds(j)
+			           + (c1 * cos(m_theta(j))
+			              - c5 * sin(m_theta(j)))
+			                 * c7 / m_ds(j);
+			py(i, j) = -0.5 * c6 * cos(m_theta(j))
+			           - c7 * sin(m_theta(j)) - qy(i, j);
+
+			if (j == size() - 1) {
+
+				probe.m_uvs(i) =
+				    (px(i, size() - 1)
+				         * m_gamma(size() - 1)
+				     + qx(i, size() - 1) * m_gamma(0));
+				probe.m_wvs(i) =
+				    (py(i, size() - 1)
+				         * m_gamma(size() - 1)
+				     - qy(i, size() - 1) * m_gamma(0));
+
+			} else {
+				probe.m_uvs(i) = (px(i, j) * m_gamma(j)
+				                  + qx(i, j) * m_gamma(j + 1));
+				probe.m_wvs(i) = (py(i, j) * m_gamma(j)
+				                  + qy(i, j) * m_gamma(j + 1));
+			}
+		}
+	}
+
+	for (unsigned i = 0; i < probe.size(); i++) {
+		probe.m_u(i) = rpi2 * probe.m_u(i) + probe.m_uvs(i) + m_Ux;
+		probe.m_w(i) = rpi2 * probe.m_w(i) + probe.m_wvs(i) + m_Uz;
+	}
+}

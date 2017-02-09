@@ -66,7 +66,7 @@ class VortexBlobs
 	void resize(unsigned size);
 
 	/// Current number of vortex blobs
-	unsigned size();
+	unsigned size() const;
 
 	/// Print the location of each vortex blob
 	void print_location();

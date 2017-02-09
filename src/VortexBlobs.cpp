@@ -133,7 +133,7 @@ double VortexBlobs::totalcirc()
 	return arma::sum(m_circ);
 }
 
-unsigned VortexBlobs::size()
+unsigned VortexBlobs::size() const
 {
 	auto ID_sz = m_ID.size();
 	if ((ID_sz != m_x.size()) && (ID_sz != m_z.size())
