@@ -23,9 +23,6 @@ class VortexBlobs
 	Vector m_wvs;
 	Vector m_omega; ///< Local vorticity
 
-	double m_pi;   ///< pi
-	double m_rpi2; ///< 1 / (2pi)
-
 	double m_kernel_threshold; ///< Threshold for the kernel
 
 	private:

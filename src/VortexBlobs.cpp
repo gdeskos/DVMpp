@@ -5,15 +5,10 @@
 //************************* Constructors *************************************//
 VortexBlobs::VortexBlobs()
 {
-	m_pi = 4.0 * atan(1.0);
-	m_rpi2 = 1.0 / (2.0 * m_pi);
 }
 
 VortexBlobs::VortexBlobs(const XmlHandler &xml, const std::string &stamp)
 {
-	m_pi = 4.0 * atan(1.0);
-	m_rpi2 = 1.0 / (2.0 * m_pi);
-
 	// Initialise the output files with the headers
 	auto outdir = xml.getStringAttribute("io", "output_dir", true);
 	auto dt = xml.getValueAttribute("time", "dt");
@@ -34,9 +29,6 @@ VortexBlobs::VortexBlobs(const XmlHandler &xml, const std::string &stamp)
 // ********************************* Public Methods *****************************//
 VortexBlobs::VortexBlobs(const unsigned &N)
 {
-	m_pi = 4.0 * atan(1.0);
-	m_rpi2 = 1.0 / (2.0 * m_pi);
-
 	resize(N);
 }
 
@@ -103,8 +95,8 @@ void VortexBlobs::biotsavart()
 				m_w(i) += dK_ij * dx_ij * m_circ(j);
 			}
 		}
-		m_u(i) *= m_rpi2;
-		m_w(i) *= m_rpi2;
+		m_u(i) *= math::rpi2;
+		m_w(i) *= math::rpi2;
 	}
 }
 
@@ -120,7 +112,7 @@ void VortexBlobs::diffusion_random_walk(Random &_rand, double nu, double dt)
 
 		// Calculate r and theta for the random walk
 		rrw = std::sqrt(4.0 * nu * dt * std::log(1.0 / R1));
-		thetarw = 2.0 * m_pi * R2;
+		thetarw = 2.0 * math::pi * R2;
 
 		m_x(i) += rrw * cos(thetarw);
 		m_z(i) += rrw * sin(thetarw);

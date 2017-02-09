@@ -46,9 +46,6 @@ class VortexSheet
 	double m_Ux; ///< Freestream x-velocity
 	double m_Uz; ///< Freestream z-velocity
 
-	double m_pi;   ///< pi
-	double m_rpi2; ///< 1 / (2pi)
-
 	std::ofstream m_gammafile; ///< Stream for gamma output file
 	std::ofstream m_forcefile; ///< Stream for force output file
 

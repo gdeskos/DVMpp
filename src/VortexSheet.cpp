@@ -18,9 +18,6 @@ VortexSheet::VortexSheet(const XmlHandler &xml, const std::string &stamp)
 	m_maxNumPanelVort = xml.getValueAttribute("constants", "max_NumPanelVort");
 	m_cutoff_exp = xml.getValueAttribute("constants", "cutoff_exp");
 
-	m_pi = 4.0 * atan(1.0);
-	m_rpi2 = 1.0 / (2.0 * m_pi);
-
 	auto indir = xml.getStringAttribute("io", "input_dir");
 	// Make sure we have trailing separator
 	if (indir.back() != '/') {
@@ -147,10 +144,10 @@ void VortexSheet::compute_influence_matrix()
 	}
 
 	for (unsigned i = 0; i < Nl; i++) {
-		m_infM(i, 0) = -m_rpi2 * (p(i, 0) + q(i, Nl - 1));
+		m_infM(i, 0) = -math::rpi2 * (p(i, 0) + q(i, Nl - 1));
 
 		for (unsigned j = 1; j < Nl; j++) {
-			m_infM(i, j) = -m_rpi2 * (p(i, j) + q(i, j - 1));
+			m_infM(i, j) = -math::rpi2 * (p(i, j) + q(i, j - 1));
 		}
 	}
 
@@ -205,8 +202,8 @@ void VortexSheet::solvevortexsheet(VortexBlobs &blobs)
 			}
 		}
 
-		u *= m_rpi2;
-		w *= m_rpi2;
+		u *= math::rpi2;
+		w *= math::rpi2;
 
 		// Not entirely convinced that this is the correct BC (see Morgenthal)
 		brhs.rows(0, Nl - 1) = (m_Ux + u) % m_enx + (m_Uz + w) % m_enz;
@@ -295,8 +292,8 @@ void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
 				                   + qy(i, j) * m_gamma(j + 1);
 			}
 		}
-		blobs.m_uvs(i) *= m_rpi2;
-		blobs.m_wvs(i) *= m_rpi2;
+		blobs.m_uvs(i) *= math::rpi2;
+		blobs.m_wvs(i) *= math::rpi2;
 	}
 }
 
@@ -554,7 +551,6 @@ std::tuple<double, double> VortexSheet::get_forces()
 void VortexSheet::probe_velocities(const VortexBlobs &blobs, Probe &probe)
 {
 	double rsigmasqr;
-	double rpi2 = 1.0 / (2.0 * m_pi);
 	double dx_ij, dz_ij, dr_ij2, threshold, xkernel;
 	double dK_ij, zkernel;
 	double x_i, z_i, u_i, w_i;
@@ -666,7 +662,7 @@ void VortexSheet::probe_velocities(const VortexBlobs &blobs, Probe &probe)
 	}
 
 	for (unsigned i = 0; i < probe.size(); i++) {
-		probe.m_u(i) = rpi2 * probe.m_u(i) + probe.m_uvs(i) + m_Ux;
-		probe.m_w(i) = rpi2 * probe.m_w(i) + probe.m_wvs(i) + m_Uz;
+		probe.m_u(i) = math::rpi2 * probe.m_u(i) + probe.m_uvs(i) + m_Ux;
+		probe.m_w(i) = math::rpi2 * probe.m_w(i) + probe.m_wvs(i) + m_Uz;
 	}
 }
