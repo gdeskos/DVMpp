@@ -66,7 +66,8 @@ class XmlHandler
 
 	/// Returns a string attribute
 	std::string getStringAttribute(const char *level,
-	                               const char *parameter) const;
+	                               const char *parameter,
+	                               bool checksep = false) const;
 
 	/// Returns a vector of the list of values in the string.
 	/** Can be either space or comma separated */

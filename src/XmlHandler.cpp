@@ -63,11 +63,18 @@ pugi::xml_node XmlHandler::getNode(const char *level,
 }
 
 std::string XmlHandler::getStringAttribute(const char *level,
-                                           const char *parameter) const
+                                           const char *parameter, bool checksep) const
 {
 	std::string attr = getNode(level, parameter).attribute("string").as_string();
 	check_string(level, parameter, attr);
-	return  attr;
+
+	if (checksep) {
+		if (attr.back() != '/') {
+			attr += '/';
+		}
+	}
+
+	return attr;
 }
 
 std::vector<double> XmlHandler::getList(const char *level,
