@@ -48,6 +48,9 @@ class VortexSheet
 	double m_pi;   ///< pi
 	double m_rpi2; ///< 1 / (2pi)
 
+	std::ofstream m_gammafile; ///< Stream for gamma output file
+	std::ofstream m_forcefile; ///< Stream for force output file
+
 	/// Read the input coordinate file
 	/** \param domain domain file to be read */
 	void read_input_coord(std::string domain);
@@ -62,7 +65,7 @@ class VortexSheet
 	public:
 	VortexSheet();
 
-	VortexSheet(const XmlHandler &xml);
+	VortexSheet(const XmlHandler &xml, const std::string &timestamp);
 
 	/// Resize all of the data members
 	/** \param size New size */
@@ -109,6 +112,10 @@ class VortexSheet
 
 	/// Print the surface vorticity for each collocation point
 	void print_gamma();
+
+	/// Print the relevant quantities to file
+	/** \param time Time step (s) */
+	void write_step(double time);
 
 	/// Return the forces in the x and z directions
 	std::tuple<double, double> get_forces();

@@ -5,7 +5,7 @@ VortexSheet::VortexSheet()
 	// Don't put anything in here, it is never called
 }
 
-VortexSheet::VortexSheet(const XmlHandler &xml)
+VortexSheet::VortexSheet(const XmlHandler &xml, const std::string &stamp)
 {
 	m_rho = xml.getValueAttribute("constants", "density");
 	m_nu = xml.getValueAttribute("constants", "nu");
@@ -32,6 +32,17 @@ VortexSheet::VortexSheet(const XmlHandler &xml)
 	read_input_coord(domain);
 	form_vortex_sheet();
 	compute_influence_matrix();
+
+	// Initialise the output file
+	auto outdir = xml.getStringAttribute("io", "output_dir", true);
+	m_gammafile.open(outdir + stamp + std::string("_gamma.dat"));
+	m_gammafile << m_xc.n_elem << " # Number of collocation points\n"
+	            << m_dt << " # Time Step\n"
+	            << xml.getValueAttribute("time", "steps") << " # Steps\n"
+	            << "Time [s] Gamma - Vortex sheet strength\n";
+
+	m_forcefile.open(outdir + stamp + std::string("_loads.dat"));
+	m_forcefile << "Time [s]\tF_x [-]\tF_z [s]\n";
 }
 
 void VortexSheet::read_input_coord(std::string file)
@@ -369,6 +380,16 @@ VortexBlobs VortexSheet::release_nascent_vortices_rw(Random &_rand)
 		}
 	}
 	return nascentVort;
+}
+
+void VortexSheet::write_step(double time)
+{
+	for (unsigned i = 0; i < m_xc.n_elem; ++i) {
+		m_gammafile << time << "\t " << m_xc(i) << "\t" << m_zc(i) << "\t"
+		            << m_gamma(i) << "\t" << m_ds(i) << "\n";
+	}
+
+	m_forcefile << time << "\t" << m_fx << "\t" << m_fz << "\n";
 }
 
 void VortexSheet::reflect(VortexBlobs& vortex)

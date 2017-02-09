@@ -6,7 +6,8 @@
 #include <iostream>
 #include <cassert>
 
-DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp) : m_vortsheet(xml)
+DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
+    : m_vortsheet(xml, timestamp)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_step = 0;
@@ -139,23 +140,6 @@ void DVMBase::init_outputs()
 	        << " "
 	        << "Number of vortices" << std::endl;
 
-	dev_gamma.open(
-	    (m_out_dir + m_timestamp + std::string("_gamma.dat")).c_str());
-	dev_gamma << m_vortsheet.size() << " # Number of collocation points"
-	          << std::endl;
-	dev_gamma << m_dt << " # Time Step" << std::endl;
-	dev_gamma << m_steps << " # Steps " << std::endl;
-	dev_gamma << "Time [s]"
-	          << " "
-	          << "Gamma - Vortex sheet strength" << std::endl;
-
-	dev_loads.open(
-	    (m_out_dir + m_timestamp + std::string("_loads.dat")).c_str());
-	dev_loads << "Time [s]"
-	          << " "
-	          << "\tF_x [-]"
-	          << "\tF_z [-]" << std::endl;
-
 	dev_probe.open(
 	    (m_out_dir + m_timestamp + std::string("_probe.dat")).c_str());
 	dev_probe << m_dt << " # Time Step" << std::endl;
@@ -202,16 +186,7 @@ void DVMBase::write_outputs()
 
 	dev_Num << m_step << " " << m_vortex.size() << std::endl;
 
-	for (unsigned i = 0; i < m_vortsheet.size(); i++) {
-		dev_gamma << m_time << "\t " << m_vortsheet.m_xc(i) << "\t "
-		          << m_vortsheet.m_zc(i) << " " << m_vortsheet.m_gamma(i) << "\t"
-		          << m_vortsheet.m_ds(i) << std::endl;
-	}
-
-	double fx, fz;
-	std::tie(fx, fz) = m_vortsheet.get_forces();
-	dev_loads << m_step << " " << fx << "\t" << fz << std::endl;
-    //dev_loads<<m_step<<"  "<<fx/(0.5*m_rho*1.0*m_Ux*m_Ux)<<"\t"<<fz/(0.5*m_rho*1.0*m_Ux*m_Ux)<<std::endl;
+	m_vortsheet.write_step(m_time);
 
 	for (unsigned i = 0; i < m_probe.size(); i++) {
 		dev_probe << m_time << " " << m_probe.m_u(i) << " " << m_probe.m_w(i)
