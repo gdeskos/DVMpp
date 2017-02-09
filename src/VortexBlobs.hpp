@@ -28,8 +28,22 @@ class VortexBlobs
 
 	double m_kernel_threshold; ///< Threshold for the kernel
 
+	private:
+	/// Output filename for the blob data;
+	/** Needs to hold a string as a stream cannot be copy-constructed. This
+	 * means we cannot return a VortexBlobs instance from a function. */
+	std::string m_blobsfile;
+
+	/// Output filename for the number of blobs at each timestep
+	/** Needs to hold a string as a stream cannot be copy-constructed. This
+	 * means we cannot return a VortexBlobs instance from a function. */
+	std::string m_numfile;
+
 	public:
 	VortexBlobs();
+
+	/// Create vortex blobs instance that will write to file
+	VortexBlobs(const XmlHandler &xml, const std::string &stamp);
 
     /// Constructor
     /** \creates N number of vortices and sets them to zero*/
@@ -62,6 +76,10 @@ class VortexBlobs
 
 	/// Print the circulation of each vortex blob
 	void print_circulation();
+
+	/// Write the blob info and number of vortices to file
+	/** \param time Simulation time [s] */
+	void write_step(double time, unsigned step);
 
     /// Destructor
     ~VortexBlobs();

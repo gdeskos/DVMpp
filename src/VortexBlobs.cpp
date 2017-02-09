@@ -9,13 +9,35 @@ VortexBlobs::VortexBlobs()
 	m_rpi2 = 1.0 / (2.0 * m_pi);
 }
 
+VortexBlobs::VortexBlobs(const XmlHandler &xml, const std::string &stamp)
+{
+	m_pi = 4.0 * atan(1.0);
+	m_rpi2 = 1.0 / (2.0 * m_pi);
+
+	// Initialise the output files with the headers
+	auto outdir = xml.getStringAttribute("io", "output_dir", true);
+	auto dt = xml.getValueAttribute("time", "dt");
+	auto steps = xml.getValueAttribute("time", "steps");
+
+	m_blobsfile = outdir + stamp + std::string("_vortex.dat");
+	auto bf = std::ofstream(m_blobsfile);
+	bf << size() << " # Number of nodes\n"
+	   << dt << " # Time step\n"
+	   << steps << " # Steps\n"
+	   << "Time [s]\tx-position [m]\tz-position [m]\tcirculation\n";
+
+	m_numfile = outdir + stamp + std::string("_vortex_num.dat");
+	auto nf = std::ofstream(m_numfile);
+	nf << "Time [s]\tNumber of vortices\n";
+}
+
 // ********************************* Public Methods *****************************//
 VortexBlobs::VortexBlobs(const unsigned &N)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_rpi2 = 1.0 / (2.0 * m_pi);
-	
-    resize(N);
+
+	resize(N);
 }
 
 void VortexBlobs::resize(unsigned size)
@@ -147,6 +169,25 @@ void VortexBlobs::print_circulation()
 	for (unsigned i = 0; i < size(); i++) {
 		std::cout << " circ = " << m_circ(i) << std::endl;
 	}
+}
+
+void VortexBlobs::write_step(double time, unsigned step)
+{
+	if (m_blobsfile.empty() || m_numfile.empty()) {
+		throw std::string(
+		    "VortexBlobs::write_step -> must set filenames before writing");
+	}
+
+	// Make sure we open up to end of the file
+	auto bf = std::ofstream(m_blobsfile, std::ios_base::app);
+
+	for (unsigned i = 0; i < size(); ++i) {
+		bf << time << "\t" << m_x(i) << "\t" << m_z(i) << "\t" << m_circ(i)
+		   << "\n";
+	}
+
+	auto nf = std::ofstream(m_numfile, std::ios_base::app);
+	nf << step << "\t" << size() << "\n";
 }
 
 //**************************************** Destructor *****************************************************//

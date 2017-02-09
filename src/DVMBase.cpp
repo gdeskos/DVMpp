@@ -7,7 +7,7 @@
 #include <cassert>
 
 DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
-    : m_vortsheet(xml, timestamp)
+   : m_vortex(xml, timestamp), m_vortsheet(xml, timestamp)
 {
 	m_pi = 4.0 * atan(1.0);
 	m_step = 0;
@@ -121,25 +121,6 @@ void DVMBase::compute_step()
 
 void DVMBase::init_outputs()
 {
-	dev_dvm.open(
-	    (m_out_dir + m_timestamp + std::string("_vortex.dat")).c_str());
-	dev_dvm << m_vortex.size() << " # Number of Nodes" << std::endl;
-	dev_dvm << m_dt << " # Time Step" << std::endl;
-	dev_dvm << m_steps << " # Steps " << std::endl;
-	dev_dvm << "Time[s]"
-	        << " "
-	        << " x-position [m]"
-	        << " "
-	        << "z-position [m]"
-	        << " "
-	        << "circulation" << std::endl;
-
-	dev_Num.open(
-	    (m_out_dir + m_timestamp + std::string("_vortex_num.dat")).c_str());
-	dev_Num << "Time [s]"
-	        << " "
-	        << "Number of vortices" << std::endl;
-
 	dev_probe.open(
 	    (m_out_dir + m_timestamp + std::string("_probe.dat")).c_str());
 	dev_probe << m_dt << " # Time Step" << std::endl;
@@ -179,12 +160,7 @@ void DVMBase::increment_step()
 
 void DVMBase::write_outputs()
 {
-	for (unsigned i = 0; i < m_vortex.size(); i++) {
-		dev_dvm << m_time << " " << m_vortex.m_x(i) << " " << m_vortex.m_z(i) << " "
-		        << m_vortex.m_circ(i) << std::endl;
-	}
-
-	dev_Num << m_step << " " << m_vortex.size() << std::endl;
+	m_vortex.write_step(m_time, m_step);
 
 	m_vortsheet.write_step(m_time);
 
