@@ -14,8 +14,6 @@ DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
 	m_step = 0;
 	m_rpi2 = 1.0 / (2.0 * m_pi);
 
-	m_timestamp = timestamp;
-
 	// Some helpers so we can do less typing
 	auto getVal = [&xml](const char *l, const char *p) {
 		return xml.getValueAttribute(l, p);
@@ -25,25 +23,7 @@ DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
 		return xml.getStringAttribute(l, p);
 	};
 
-	auto checksep = [](std::string str) {
-		return (str.back() == '/') ? str : str + '/';
-	};
-
-	// Get all the various inputs. Valid inputs are checked by the xml handler
-	m_in_dir = checksep(getStr("io", "input_dir"));
-	m_out_dir = checksep(getStr("io", "output_dir"));
-	m_domain_file = getStr("io", "domain_file");
-
-	m_rho = getVal("constants", "density");
 	m_nu = getVal("constants", "nu");
-	m_maxGamma = getVal("constants", "max_Gamma");
-	m_maxNumPanelVort = getVal("constants", "max_NumPanelVort");
-	m_cutoff_exp = getVal("constants", "cutoff_exp");
-	// Need to find a way in the xml handler to deal with this too
-	if (m_cutoff_exp >= 1) {
-		throw std::string(
-		    "<IC2DDVM><constants><cutoff_exponent> must be less than one and greater than 0.5");
-	}
 
 	m_dt = getVal("time", "dt");
 	m_steps = getVal("time", "steps");
@@ -51,9 +31,6 @@ DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
 	m_Ux = getVal("flow", "ux");
 	m_Uz = getVal("flow", "uz");
 	m_Ur = std::sqrt(m_Ux * m_Ux + m_Uz * m_Uz);
-
-	m_probe.m_x = xml.getList("probe", "x");
-	m_probe.m_z = xml.getList("probe", "z");
 
 	auto seed = xml.getIntAttribute("constants", "seed");
 	m_rand.seed(seed);
@@ -91,7 +68,7 @@ void DVMBase::solve()
 		// Screen output
 		std::cout << "Simulation time          = " << get_time() << "\tStep "
 		          << j << "/" << get_steps() << std::endl;
-		std::cout << "Number of vortex blobs   = " << get_size() << std::endl;
+		std::cout << "Number of vortex blobs   = " << m_vortex.size() << std::endl;
 	}
 }
 
@@ -120,23 +97,9 @@ void DVMBase::compute_step()
 	m_vortsheet.reflect(m_vortex);
 }
 
-void DVMBase::init_outputs()
-{
-}
-
 double DVMBase::get_time()
 {
 	return m_time;
-}
-
-unsigned DVMBase::get_size()
-{
-	return m_vortex.size();
-}
-
-unsigned DVMBase::get_vs_size()
-{
-	return m_vortsheet.size();
 }
 
 unsigned DVMBase::get_steps()

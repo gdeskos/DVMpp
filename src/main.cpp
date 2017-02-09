@@ -80,8 +80,6 @@ int main(int argc, char *argv[])
 
 		DVMBase dvm(xml, stamp);
 
-		dvm.init_outputs();
-
         auto outdir = xml.getStringAttribute("io", "output_dir");
 		outdir = (outdir.back() == '/') ? outdir : outdir + '/';
 		xml.save(outdir + stamp + "_xml_in.xml");

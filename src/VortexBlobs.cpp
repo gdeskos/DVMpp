@@ -122,8 +122,8 @@ void VortexBlobs::diffusion_random_walk(Random &_rand, double nu, double dt)
 		rrw = std::sqrt(4.0 * nu * dt * std::log(1.0 / R1));
 		thetarw = 2.0 * m_pi * R2;
 
-		m_x[i] += rrw * cos(thetarw);
-		m_z[i] += rrw * sin(thetarw);
+		m_x(i) += rrw * cos(thetarw);
+		m_z(i) += rrw * sin(thetarw);
 	}
 }
 
