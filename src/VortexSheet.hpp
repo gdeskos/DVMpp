@@ -18,7 +18,7 @@
 
 class VortexSheet
 {
-	public:
+	private:
 	Vector m_gamma;      ///< surface vorticity
 	Vector m_x;          ///< x-coordinate point
 	Vector m_z;          ///< z-coordinate point
@@ -33,11 +33,10 @@ class VortexSheet
 
 	Matrix m_infM; ///< Influence matrix
 
-	private:
 	double m_rho;      ///< Density of fluid
 	double m_nu;       ///< Kinematic viscosity of the fluid
 	double m_dt;       ///< Timestep
-	double m_maxGamma; ///< maximum circulation of the nascent vortex
+
 	unsigned m_maxNumPanelVort; /// Maximum number of vortices allowed in each panel
 	double m_cutoff_exp; /// Cutoff distance coefficient q, according to Perlman 1985 0.5<q<1
 	double m_fx;         ///< Force in x-direction
@@ -60,14 +59,21 @@ class VortexSheet
 	/** Computed using the coefficients after Morgenthal */
 	void compute_influence_matrix();
 
+	/// Find Inside the vortex sheet vortices
+	bool inside_body(double xcoor, double zcoor);
+
+	/// Mirror the particle from a panel
+	Vector mirror(double x_init,
+	              double z_init,
+	              double x_0,
+	              double z_0,
+	              double x_1,
+	              double z_1);
+
 	public:
 	VortexSheet();
 
 	VortexSheet(const XmlHandler &xml, const std::string &timestamp);
-
-	/// Resize all of the data members
-	/** \param size New size */
-	void resize(unsigned size);
 
 	/// Impose the vortex sheet boundary condition
 	/** Updates the blobs in place.
@@ -84,17 +90,6 @@ class VortexSheet
 
     /// Reflects the vortices the the image location from the panels
     void reflect(VortexBlobs &vortex);
-
-    /// Find Inside the vortex sheet vortices
-    int inside_body(double xcoor, double zcoor);
-
-	/// Mirror the particle from a panel
-	Vector mirror(double x_init,
-	              double z_init,
-	              double x_0,
-	              double z_0,
-	              double x_1,
-	              double z_1);
 
 	/// Compute the forces on the body
 	void compute_loads(double Urel);

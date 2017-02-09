@@ -14,7 +14,6 @@ VortexSheet::VortexSheet(const XmlHandler &xml, const std::string &stamp)
 	m_Ux = xml.getValueAttribute("flow", "ux");
 	m_Uz = xml.getValueAttribute("flow", "uz");
 
-	m_maxGamma = xml.getValueAttribute("constants", "max_Gamma");
 	m_maxNumPanelVort = xml.getValueAttribute("constants", "max_NumPanelVort");
 	m_cutoff_exp = xml.getValueAttribute("constants", "cutoff_exp");
 
@@ -212,19 +211,6 @@ void VortexSheet::solvevortexsheet(VortexBlobs &blobs)
 
 	// Solve system
 	m_gamma = arma::solve(m_infM.t() * m_infM, m_infM.t() * brhs);
-}
-
-void VortexSheet::resize(unsigned size)
-{
-	m_gamma.set_size(size);
-	m_xc.set_size(size);
-	m_zc.set_size(size);
-	m_theta.set_size(size);
-	m_ds.set_size(size);
-	m_enx.set_size(size);
-	m_enz.set_size(size);
-	m_etx.set_size(size);
-	m_etz.set_size(size);
 }
 
 void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
@@ -432,26 +418,28 @@ void VortexSheet::reflect(VortexBlobs& vortex)
 
 			vortex.m_x(i) = _mirror(0);
 			vortex.m_z(i) = _mirror(1);
-            // All other properties of the vortices 
+			// All other properties of the vortices remain the same
 		}
 	}
 }
 
-int VortexSheet::inside_body(double xcoor, double zcoor)
+bool VortexSheet::inside_body(double xcoor, double zcoor)
 {
-    int cn = 0;
+	// Using this algorithm, cn == 1 when the point is inside the boundary
+	int cn = 0;
 
 	for (unsigned i = 0; i < size(); i++) {
 		if (((m_z(i) <= zcoor) && (m_z(i + 1) > zcoor))
 		    || ((m_z(i) > zcoor) && (m_z(i + 1) <= zcoor))) {
 
-			float vt = (float)(zcoor - m_z(i)) / (m_z(i + 1) - m_z(i));
+			auto vt = (zcoor - m_z(i)) / (m_z(i + 1) - m_z(i));
 			if (xcoor < m_x(i) + vt * (m_x(i + 1) - m_x(i))) {
 				++cn;
 			}
 		}
 	}
-	return (cn & 1);
+
+	return (cn == 1);
 }
 
 Vector VortexSheet::mirror(double x_init,
