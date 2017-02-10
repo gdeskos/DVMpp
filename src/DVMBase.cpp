@@ -1,10 +1,9 @@
 #include "DVMBase.hpp"
 #include <armadillo>
+#include <cassert>
 #include <cmath>
 #include <iomanip>
-#include <time.h>
 #include <iostream>
-#include <cassert>
 
 DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
     : m_vortex(xml, timestamp), m_vortsheet(xml, timestamp),
@@ -64,7 +63,8 @@ void DVMBase::solve()
 		// Screen output
 		std::cout << "Simulation time          = " << get_time() << "\tStep "
 		          << j << "/" << get_steps() << std::endl;
-		std::cout << "Number of vortex blobs   = " << m_vortex.size() << std::endl;
+		std::cout << "Number of vortex blobs   = " << m_vortex.size()
+		          << std::endl;
 	}
 }
 
@@ -72,10 +72,11 @@ void DVMBase::compute_step()
 {
 	//************** Advection substep*****************//
 	convect();
-    
-    //remesh(); 
-    // Fror remeshing both triangulated meshes (with RBF) and structured meshes with morgenthal M6 interpolators
-    // will be used.
+
+	// remesh();
+	// Fror remeshing both triangulated meshes (with RBF) and structured meshes
+	// with morgenthal M6 interpolators
+	// will be used.
 
 	//************** Diffusion substep ****************//
 	// The diffussion problem in an infinite domain
@@ -92,12 +93,11 @@ void DVMBase::compute_step()
 	// 3) Reflecting them back to the flow
 	m_vortsheet.reflect(m_vortex);
 
-    //********************* Computing Loads/ Moving body *********************//
-    //We compute the loads at the end of the time step
+	//********************* Computing Loads/ Moving body *********************//
+	// We compute the loads at the end of the time step
 	m_vortsheet.compute_loads(m_Ur);
 
-    //********************* Merge/Delete Vortices ****************************//
-    
+	//********************* Merge/Delete Vortices ****************************//
 }
 
 double DVMBase::get_time()
@@ -130,40 +130,41 @@ void DVMBase::convect()
 	switch (m_scheme) {
 	case Scheme::Euler:
 		// Find the free-space velocity
-        m_vortex.biotsavart();
-        // Find the boundary-imposed velocities-these two should be combined together into one
-	    m_vortsheet.solvevortexsheet(m_vortex);	
-        m_vortsheet.vortexsheetbc(m_vortex);
+		m_vortex.biotsavart();
+		// Find the boundary-imposed velocities-these two should be combined
+		// together into one
+		m_vortsheet.solvevortexsheet(m_vortex);
+		m_vortsheet.vortexsheetbc(m_vortex);
 
-        // Added them together
+		// Added them together
 		m_vortex.m_x += (m_vortex.m_u + m_vortex.m_uvs + m_Ux) * m_dt;
 		m_vortex.m_z += (m_vortex.m_w + m_vortex.m_wvs + m_Uz) * m_dt;
 		break;
-	case Scheme::RK3:	
-        // coefficients for Low Storage-Runge Kutta 3rd
-        const double a[3]={0,-17./32,-32./27};
-        const double b[3]={1./4,8./9,3./4};
-        
-        // execute 3 stages of Low Storage Runge-Kutta 3rd
-        Vector q1=arma::zeros(m_vortex.size());
-        Vector q2=arma::zeros(m_vortex.size());
-        
-        for(int i=0; i<3; ++i){
+	case Scheme::RK3:
+		// coefficients for Low Storage-Runge Kutta 3rd
+		const double a[3] = {0, -17. / 32, -32. / 27};
+		const double b[3] = {1. / 4, 8. / 9, 3. / 4};
 
-        // Compute the right-hand side of the system
-		// Find the free-space velocity
-        m_vortex.biotsavart();
-        // Find the boundary-imposed velocities-these two may be combined together into one
-	    m_vortsheet.solvevortexsheet(m_vortex);	
-        m_vortsheet.vortexsheetbc(m_vortex);
-        
-        q1=a[i]*q1+(m_vortex.m_u + m_vortex.m_uvs + m_Ux) * m_dt; 
-        q2=a[i]*q2+(m_vortex.m_w + m_vortex.m_wvs + m_Uz) * m_dt;
+		// execute 3 stages of Low Storage Runge-Kutta 3rd
+		Vector q1 = arma::zeros(m_vortex.size());
+		Vector q2 = arma::zeros(m_vortex.size());
 
-		m_vortex.m_x += b[i]*q1;
-		m_vortex.m_z += b[i]*q2;
-        }
-        break;
+		for (int i = 0; i < 3; ++i) {
+
+			// Compute the right-hand side of the system
+			// Find the free-space velocity
+			m_vortex.biotsavart();
+			// Find the boundary-imposed velocities-these two may be combined
+			// together into one
+			m_vortsheet.solvevortexsheet(m_vortex);
+			m_vortsheet.vortexsheetbc(m_vortex);
+
+			q1 = a[i] * q1 + (m_vortex.m_u + m_vortex.m_uvs + m_Ux) * m_dt;
+			q2 = a[i] * q2 + (m_vortex.m_w + m_vortex.m_wvs + m_Uz) * m_dt;
+
+			m_vortex.m_x += b[i] * q1;
+			m_vortex.m_z += b[i] * q2;
+		}
+		break;
 	}
 }
-

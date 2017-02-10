@@ -4,14 +4,14 @@
 #include "XmlHandler.hpp"
 #include "pugiconfig.hpp"
 #include "pugixml.hpp"
+#include <boost/program_options.hpp>
+#include <chrono>
+#include <ctime>
 #include <fstream>
+#include <iomanip>
 #include <iostream>
 #include <sstream>
 #include <string>
-#include <iomanip>
-#include <ctime>
-#include <chrono>
-#include <boost/program_options.hpp>
 
 int main(int argc, char *argv[])
 {
@@ -80,10 +80,10 @@ int main(int argc, char *argv[])
 
 		DVMBase dvm(xml, stamp);
 
-        auto outdir = xml.getStringAttribute("io", "output_dir");
+		auto outdir = xml.getStringAttribute("io", "output_dir");
 		outdir = (outdir.back() == '/') ? outdir : outdir + '/';
 		xml.save(outdir + stamp + "_xml_in.xml");
-		auto start  = std::chrono::system_clock::now();
+		auto start = std::chrono::system_clock::now();
 
 		/// Solve the problem
 		dvm.solve();

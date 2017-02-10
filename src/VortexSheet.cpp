@@ -125,11 +125,13 @@ void VortexSheet::compute_influence_matrix()
 
 				double dsj = m_ds(j);
 
-				c1 = -(xci - xj) * std::cos(thetaj) - (zci - zj) * std::sin(thetaj);
+				c1 = -(xci - xj) * std::cos(thetaj)
+				     - (zci - zj) * std::sin(thetaj);
 				c2 = std::pow(xci - xj, 2) + std::pow(zci - zj, 2);
 				c3 = std::sin(thetai - thetaj);
 				c4 = std::cos(thetai - thetaj);
-				c5 = (xci - xj) * std::sin(thetaj) - (zci - zj) * std::cos(thetaj);
+				c5 = (xci - xj) * std::sin(thetaj)
+				     - (zci - zj) * std::cos(thetaj);
 				c6 = std::log(1.0 + dsj * ((dsj + 2 * c1) / c2));
 				c7 = std::atan2((c5 * dsj), (c2 + c1 * dsj));
 				c9 = (xci - xj) * std::cos(thetai - 2.0 * thetaj)
@@ -223,7 +225,7 @@ void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
 	py.copy_size(px);
 	qy.copy_size(px);
 
-// compute the coefficients
+	// compute the coefficients
 	for (unsigned i = 0; i < blobs.size(); i++) {
 
 		double xi = blobs.m_x(i);
@@ -267,15 +269,15 @@ void VortexSheet::vortexsheetbc(VortexBlobs &blobs)
 
 		for (unsigned j = 0; j < size(); j++) {
 			if (j == last) {
-				blobs.m_uvs(i) += px(i, last) * m_gamma(last)
-				                   + qx(i, last) * m_gamma(0);
-				blobs.m_wvs(i) += py(i, last) * m_gamma(last)
-				                   + qy(i, last) * m_gamma(0);
+				blobs.m_uvs(i) +=
+				    px(i, last) * m_gamma(last) + qx(i, last) * m_gamma(0);
+				blobs.m_wvs(i) +=
+				    py(i, last) * m_gamma(last) + qy(i, last) * m_gamma(0);
 			} else {
-				blobs.m_uvs(i) += px(i, j) * m_gamma(j)
-				                   + qx(i, j) * m_gamma(j + 1);
-				blobs.m_wvs(i) += py(i, j) * m_gamma(j)
-				                   + qy(i, j) * m_gamma(j + 1);
+				blobs.m_uvs(i) +=
+				    px(i, j) * m_gamma(j) + qx(i, j) * m_gamma(j + 1);
+				blobs.m_wvs(i) +=
+				    py(i, j) * m_gamma(j) + qy(i, j) * m_gamma(j + 1);
 			}
 		}
 		blobs.m_uvs(i) *= math::rpi2;
@@ -291,7 +293,8 @@ VortexBlobs VortexSheet::release_nascent_vortices_rw(Random &_rand)
 	double R, rrw;
 
 	// First we need to determine how many of these vortices will be created at
-	// each panel. This is in accordance with Morgenthal PhD 4.3.6 Vortex release
+	// each panel. This is in accordance with Morgenthal PhD 4.3.6 Vortex
+	// release
 	// algorithm (eq. 4.108)
 	Vector PanelCirc = m_gamma % m_ds; // Panel's total circulation
 
@@ -375,7 +378,7 @@ void VortexSheet::write_step(double time)
 	m_forcefile << time << "\t" << m_fx << "\t" << m_fz << "\n";
 }
 
-void VortexSheet::reflect(VortexBlobs& vortex)
+void VortexSheet::reflect(VortexBlobs &vortex)
 {
 	Vector_un closest_panel(vortex.size());
 	Vector min_dist(vortex.size());
@@ -485,8 +488,8 @@ void VortexSheet::compute_loads(double Ur)
 	P += (pref - pmax) * arma::ones(size(), 1);
 
 	// To find the forces we need to measure on the particle
-    // we need to change sign 
-    m_fx = -arma::sum(P % m_enx % m_ds);
+	// we need to change sign
+	m_fx = -arma::sum(P % m_enx % m_ds);
 	m_fz = -arma::sum(P % m_enz % m_ds);
 
 	std::cout << "C_D = " << m_fx / (0.5 * m_rho * 1.0 * Ur * Ur) << "\t"
@@ -495,10 +498,9 @@ void VortexSheet::compute_loads(double Ur)
 
 unsigned VortexSheet::size()
 {
-	if ((m_gamma.size() != m_xc.size())
-	    && (m_gamma.size() != m_zc.size())
-	    && (m_gamma.size() != m_x.size()-1)
-	    && (m_gamma.size() != m_z.size()-1)
+	if ((m_gamma.size() != m_xc.size()) && (m_gamma.size() != m_zc.size())
+	    && (m_gamma.size() != m_x.size() - 1)
+	    && (m_gamma.size() != m_z.size() - 1)
 	    && (m_gamma.size() != m_ds.size())
 	    && (m_gamma.size() != m_theta.size())
 	    && (m_gamma.size() != m_enx.size())
@@ -513,7 +515,8 @@ unsigned VortexSheet::size()
 void VortexSheet::print_collocation()
 {
 	for (unsigned i = 0; i < size(); i++) {
-		std::cout << "(xc,zc) = (" << m_xc(i) << "," << m_zc(i) << ")" << std::endl;
+		std::cout << "(xc,zc) = (" << m_xc(i) << "," << m_zc(i) << ")"
+		          << std::endl;
 	}
 }
 
@@ -521,8 +524,8 @@ void VortexSheet::print_unit_vectors()
 {
 	for (unsigned i = 0; i < size(); i++) {
 		std::cout << "For panel No " << i << "the normal vectors are en = ("
-		          << m_enx(i) << "," << m_enz(i) << ") and et = (" << m_etx(i) << ","
-		          << m_etz(i) << ")" << std::endl;
+		          << m_enx(i) << "," << m_enz(i) << ") and et = (" << m_etx(i)
+		          << "," << m_etz(i) << ")" << std::endl;
 	}
 }
 
@@ -594,57 +597,42 @@ void VortexSheet::probe_velocities(const VortexBlobs &blobs, Probe &probe)
 	for (unsigned i = 0; i < probe.size(); i++) {
 		for (unsigned j = 1; j < size(); j++) {
 			c1 = -(probe.m_x(i) - m_xc(j)) * cos(m_theta(j))
-			     - (probe.m_z(i) - m_zc(j))
-			           * sin(m_theta(j));
+			     - (probe.m_z(i) - m_zc(j)) * sin(m_theta(j));
 			c2 = std::pow((probe.m_x(i) - m_xc(j)), 2)
 			     + std::pow((probe.m_z(i) - m_zc(j)), 2);
 			c5 = (probe.m_x(i) - m_xc(j)) * sin(m_theta(j))
-			     - (probe.m_z(i) - m_zc(j))
-			           * cos(m_theta(j));
-			c6 = log(1.0
-			         + m_ds(j) * ((m_ds(j) + 2 * c1) / c2));
+			     - (probe.m_z(i) - m_zc(j)) * cos(m_theta(j));
+			c6 = log(1.0 + m_ds(j) * ((m_ds(j) + 2 * c1) / c2));
 			c7 = atan2((c5 * m_ds(j)), (c2 + c1 * m_ds(j)));
-			c8 = (probe.m_x(i) - m_xc(j))
-			         * sin(-2.0 * m_theta(j))
-			     + (probe.m_z(i) - m_zc(j))
-			           * cos(-2.0 * m_theta(j));
-			c9 = (probe.m_x(i) - m_xc(j))
-			         * cos(-2.0 * m_theta(j))
-			     + (probe.m_z(i) - m_zc(j))
-			           * sin(-2.0 * m_theta(j));
+			c8 = (probe.m_x(i) - m_xc(j)) * sin(-2.0 * m_theta(j))
+			     + (probe.m_z(i) - m_zc(j)) * cos(-2.0 * m_theta(j));
+			c9 = (probe.m_x(i) - m_xc(j)) * cos(-2.0 * m_theta(j))
+			     + (probe.m_z(i) - m_zc(j)) * sin(-2.0 * m_theta(j));
 
-			qx(i, j) = -sin(m_theta(j))
-			           + 0.5 * c8 * c6 / m_ds(j)
-			           + (c1 * cos(m_theta(j))
-			              + c5 * sin(m_theta(j)))
-			                 * c7 / m_ds(j);
-			px(i, j) = -0.5 * c6 * sin(m_theta(j))
-			           - c7 * cos(m_theta(j)) - qx(i, j);
+			qx(i, j) =
+			    -sin(m_theta(j)) + 0.5 * c8 * c6 / m_ds(j)
+			    + (c1 * cos(m_theta(j)) + c5 * sin(m_theta(j))) * c7 / m_ds(j);
+			px(i, j) =
+			    -0.5 * c6 * sin(m_theta(j)) - c7 * cos(m_theta(j)) - qx(i, j);
 
-			qy(i, j) = cos(m_theta(j))
-			           + 0.5 * c9 * c6 / m_ds(j)
-			           + (c1 * cos(m_theta(j))
-			              - c5 * sin(m_theta(j)))
-			                 * c7 / m_ds(j);
-			py(i, j) = -0.5 * c6 * cos(m_theta(j))
-			           - c7 * sin(m_theta(j)) - qy(i, j);
+			qy(i, j) =
+			    cos(m_theta(j)) + 0.5 * c9 * c6 / m_ds(j)
+			    + (c1 * cos(m_theta(j)) - c5 * sin(m_theta(j))) * c7 / m_ds(j);
+			py(i, j) =
+			    -0.5 * c6 * cos(m_theta(j)) - c7 * sin(m_theta(j)) - qy(i, j);
 
 			if (j == size() - 1) {
 
-				probe.m_uvs(i) =
-				    (px(i, size() - 1)
-				         * m_gamma(size() - 1)
-				     + qx(i, size() - 1) * m_gamma(0));
-				probe.m_wvs(i) =
-				    (py(i, size() - 1)
-				         * m_gamma(size() - 1)
-				     - qy(i, size() - 1) * m_gamma(0));
+				probe.m_uvs(i) = (px(i, size() - 1) * m_gamma(size() - 1)
+				                  + qx(i, size() - 1) * m_gamma(0));
+				probe.m_wvs(i) = (py(i, size() - 1) * m_gamma(size() - 1)
+				                  - qy(i, size() - 1) * m_gamma(0));
 
 			} else {
-				probe.m_uvs(i) = (px(i, j) * m_gamma(j)
-				                  + qx(i, j) * m_gamma(j + 1));
-				probe.m_wvs(i) = (py(i, j) * m_gamma(j)
-				                  + qy(i, j) * m_gamma(j + 1));
+				probe.m_uvs(i) =
+				    (px(i, j) * m_gamma(j) + qx(i, j) * m_gamma(j + 1));
+				probe.m_wvs(i) =
+				    (py(i, j) * m_gamma(j) + qy(i, j) * m_gamma(j + 1));
 			}
 		}
 	}

@@ -12,13 +12,13 @@
 class VortexBlobs
 {
 	public:
-	std::vector<unsigned> m_ID;  ///< Vortex blob ID
-	Vector m_x;     ///< x-coordinate
-	Vector m_z;     ///< z-coordinate
-	Vector m_circ;  ///< circulation
-	Vector m_sigma; ///< vortex cut-off
-	Vector m_u;     ///< local x-velocity
-	Vector m_w;     ///< local z-velocity
+	std::vector<unsigned> m_ID; ///< Vortex blob ID
+	Vector m_x;                 ///< x-coordinate
+	Vector m_z;                 ///< z-coordinate
+	Vector m_circ;              ///< circulation
+	Vector m_sigma;             ///< vortex cut-off
+	Vector m_u;                 ///< local x-velocity
+	Vector m_w;                 ///< local z-velocity
 	Vector m_uvs;
 	Vector m_wvs;
 
@@ -39,14 +39,14 @@ class VortexBlobs
 	/// Create vortex blobs instance that will write to file
 	VortexBlobs(const XmlHandler &xml, const std::string &stamp);
 
-    /// Constructor
-    /** \creates N number of vortices and sets them to zero*/
-    VortexBlobs(const unsigned& N);
+	/// Constructor
+	/** \creates N number of vortices and sets them to zero*/
+	VortexBlobs(const unsigned &N);
 
-    /// Appends vortexblobs
-    void append_vortices(VortexBlobs &NewVortBlobs);
-    
-    /// Biot-Savart relationship
+	/// Appends vortexblobs
+	void append_vortices(VortexBlobs &NewVortBlobs);
+
+	/// Biot-Savart relationship
 	void biotsavart();
 
 	/// Diffusion through random walk
@@ -71,8 +71,8 @@ class VortexBlobs
 	/** \param time Simulation time [s] */
 	void write_step(double time, unsigned step);
 
-    /// Destructor
-    ~VortexBlobs();
+	/// Destructor
+	~VortexBlobs();
 };
 
 #endif

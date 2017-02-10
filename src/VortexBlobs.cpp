@@ -26,7 +26,7 @@ VortexBlobs::VortexBlobs(const XmlHandler &xml, const std::string &stamp)
 	nf << "Time [s]\tNumber of vortices\n";
 }
 
-// ********************************* Public Methods *****************************//
+//****************************** Public Methods ******************************//
 VortexBlobs::VortexBlobs(const unsigned &N)
 {
 	m_ID.resize(N);
@@ -40,9 +40,9 @@ VortexBlobs::VortexBlobs(const unsigned &N)
 	m_wvs.set_size(N);
 }
 
-void VortexBlobs::append_vortices(VortexBlobs& NewVortBlobs) 
+void VortexBlobs::append_vortices(VortexBlobs &NewVortBlobs)
 {
-    // Get the number of Vortices
+	// Get the number of Vortices
 	auto Nold = size();
 	auto Nnew = NewVortBlobs.size();
 	for (unsigned i = 0; i < Nnew; i++) {
@@ -75,7 +75,7 @@ void VortexBlobs::biotsavart()
 				dz_ij = m_z(i) - m_z(j);
 				dr_ij2 = std::pow(dx_ij, 2) + std::pow(dz_ij, 2.0);
 
-				threshold =10.0*std::pow(m_sigma(j), 2.0);
+				threshold = 10.0 * std::pow(m_sigma(j), 2.0);
 				rsigmasqr = 1.0 / std::pow(m_sigma(j), 2.0);
 
 				if (dr_ij2 < threshold) {
@@ -112,7 +112,6 @@ void VortexBlobs::diffusion_random_walk(Random &_rand, double nu, double dt)
 	}
 }
 
-
 double VortexBlobs::totalcirc()
 {
 	return arma::sum(m_circ);
@@ -136,8 +135,9 @@ unsigned VortexBlobs::size() const
 void VortexBlobs::print_location()
 {
 	for (unsigned i = 0; i < size(); i++) {
-		std::cout << " The location of Vortex Blob " << m_ID[i] << " is (x,z) = ("
-		          << m_x(i) << "," << m_z(i) << ")" << std::endl;
+		std::cout << " The location of Vortex Blob " << m_ID[i]
+		          << " is (x,z) = (" << m_x(i) << "," << m_z(i) << ")"
+		          << std::endl;
 	}
 }
 
@@ -174,9 +174,8 @@ void VortexBlobs::write_step(double time, unsigned step)
 	nf << step << "\t" << size() << "\n";
 }
 
-//**************************************** Destructor *****************************************************//
+//****************************** Destructor **********************************//
 VortexBlobs::~VortexBlobs()
 {
-    //Destructor
+	// Destructor
 }
-

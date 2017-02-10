@@ -2,11 +2,11 @@
 #define DVMBASE
 
 #include "BaseTypes.hpp"
+#include "Probe.hpp"
+#include "Random.hpp"
 #include "VortexBlobs.hpp"
 #include "VortexSheet.hpp"
-#include "Probe.hpp"
 #include "XmlHandler.hpp"
-#include "Random.hpp"
 #include "pugiconfig.hpp"
 #include "pugixml.hpp"
 #include <algorithm>
@@ -26,19 +26,20 @@ class DVMBase
 	VortexBlobs m_vortex;    ///< The point vortices
 	VortexSheet m_vortsheet; ///< The vortex sheet
 	Probe m_probe;           ///< Velocity probe
-	Random m_rand; ///< Random number generation
-	XmlHandler m_xml; ///< Xml handler
+	Random m_rand;           ///< Random number generation
+	XmlHandler m_xml;        ///< Xml handler
 
 	double m_nu; ///< Kinematic viscosity
 
 	double m_Ux; ///< Free stream velocity in x
 	double m_Uz; ///< Free stream velocity in ym_n, m_np;
-	double m_Ur; ///< Magnitute of the free stream velocity in the magnitude of the flow
+	double m_Ur; ///< Magnitute of the free stream velocity in the magnitude of
+	             /// the flow
 
-	double m_dt;            ///< Timestep
-	double m_time;          ///< Current simulation time
-	unsigned m_step;        ///< Current timestep
-	unsigned m_steps;       ///< Total timesteps
+	double m_dt;      ///< Timestep
+	double m_time;    ///< Current simulation time
+	unsigned m_step;  ///< Current timestep
+	unsigned m_steps; ///< Total timesteps
 
 	/// Computes a particular timestep
 	void compute_step();
@@ -62,8 +63,8 @@ class DVMBase
 		RK3,   ///< Low-storage Runge-Kutta 3nd order
 	};
 	Scheme m_scheme; ///< Time-stepping scheme
-    
-    /// Definition surface_crossing algorithm
+
+	/// Definition surface_crossing algorithm
 	enum SurfaceCross {
 		DELETE, ///< Deletes the vortices entering the body
 		/// Absorbs the vortices the vortices crossing the boundary.
@@ -74,7 +75,7 @@ class DVMBase
 		REFLECT ///< Reflects the vortices entering the body back to their image
 		        /// position
 	};
-	SurfaceCross m_surfcross; ///< Surface crossing algorithm 
+	SurfaceCross m_surfcross; ///< Surface crossing algorithm
 
 	/// Convect point vortices
 	void convect();

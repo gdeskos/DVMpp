@@ -2,45 +2,47 @@
 #define VORTEXSHEET_H
 
 #include "BaseTypes.hpp"
-#include "XmlHandler.hpp"
-#include "VortexBlobs.hpp"
 #include "Probe.hpp"
 #include "Random.hpp"
-#include <string>
-#include <sstream>
-#include <string.h>
+#include "VortexBlobs.hpp"
+#include "XmlHandler.hpp"
+#include <cassert>
 #include <fstream>
 #include <iostream>
+#include <sstream>
+#include <string>
 #include <tuple>
-#include <cassert>
 
 /// VortexSheet describes the vortex sheet
 
 class VortexSheet
 {
 	private:
-	Vector m_gamma;      ///< surface vorticity
-	Vector m_x;          ///< x-coordinate point
-	Vector m_z;          ///< z-coordinate point
-	Vector m_xc;         ///< x-collocation point
-	Vector m_zc;         ///< z-collocation point
-	Vector m_theta;      ///< angle
-	Vector m_ds;         ///< panel
-	Vector m_enx;        ///< x-coor normal unit vector
-	Vector m_enz;        ///< z-coor normal unit vector
-	Vector m_etx;        ///< x-coor tangential unit vector
-	Vector m_etz;        ///< z-coor tangential unit vector
+	Vector m_gamma; ///< surface vorticity
+	Vector m_x;     ///< x-coordinate point
+	Vector m_z;     ///< z-coordinate point
+	Vector m_xc;    ///< x-collocation point
+	Vector m_zc;    ///< z-collocation point
+	Vector m_theta; ///< angle
+	Vector m_ds;    ///< panel
+	Vector m_enx;   ///< x-coor normal unit vector
+	Vector m_enz;   ///< z-coor normal unit vector
+	Vector m_etx;   ///< x-coor tangential unit vector
+	Vector m_etz;   ///< z-coor tangential unit vector
 
 	Matrix m_infM; ///< Influence matrix
 
-	double m_rho;      ///< Density of fluid
-	double m_nu;       ///< Kinematic viscosity of the fluid
-	double m_dt;       ///< Timestep
+	double m_rho; ///< Density of fluid
+	double m_nu;  ///< Kinematic viscosity of the fluid
+	double m_dt;  ///< Timestep
 
-	unsigned m_maxNumPanelVort; /// Maximum number of vortices allowed in each panel
-	double m_cutoff_exp; /// Cutoff distance coefficient q, according to Perlman 1985 0.5<q<1
-	double m_fx;         ///< Force in x-direction
-	double m_fz;         ///< Force in z-direction
+	/// Maximum number of vorticies allow in each panel
+	unsigned m_maxNumPanelVort;
+	/// Cutoff distance coefficient q, according to Perlman 1985 0.5<q<1
+	double m_cutoff_exp;
+
+	double m_fx; ///< Force in x-direction
+	double m_fz; ///< Force in z-direction
 
 	double m_Ux; ///< Freestream x-velocity
 	double m_Uz; ///< Freestream z-velocity
@@ -83,13 +85,14 @@ class VortexSheet
 	/// Solve for the vortex sheet
 	void solvevortexsheet(VortexBlobs &blobs);
 
-    /// Release nascent vortices from the vortexsheet using random walk
-    VortexBlobs release_nascent_vortices_rw(Random& _rand);
-   
-    /// Efficient Surface Algorithm for Random Walk (Smith and Stansby 1989, JCP paper)
+	/// Release nascent vortices from the vortexsheet using random walk
+	VortexBlobs release_nascent_vortices_rw(Random &_rand);
 
-    /// Reflects the vortices the the image location from the panels
-    void reflect(VortexBlobs &vortex);
+	/// Efficient Surface Algorithm for Random Walk (Smith and Stansby 1989, JCP
+	/// paper)
+
+	/// Reflects the vortices the the image location from the panels
+	void reflect(VortexBlobs &vortex);
 
 	/// Compute the forces on the body
 	void compute_loads(double Urel);
