@@ -38,8 +38,6 @@ DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
 		m_scheme = Scheme::Euler;
 	} else if (scheme.compare("RK3") == 0) {
 		m_scheme = Scheme::RK3;
-	} else if (scheme.compare("RK4") == 0) {
-		m_scheme = Scheme::RK4;
 	} // Invalid cases dealt with by the xml handler
 
 	auto surfacecross = getStr("algorithms", "surface_crossing");

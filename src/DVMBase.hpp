@@ -60,7 +60,6 @@ class DVMBase
 	enum Scheme {
 		Euler, ///< Euler explicit
 		RK3,   ///< Low-storage Runge-Kutta 3nd order
-		RK4    ///< Low-storage Runge-Kutta 4th order
 	};
 	Scheme m_scheme; ///< Time-stepping scheme
     
