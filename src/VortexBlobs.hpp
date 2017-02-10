@@ -7,7 +7,9 @@
 
 #include <vector>
 
-/// VortexBlobs describes the vortex blobs
+/** \class VortexBlobs
+ * \brief Describes the vortex blobs
+ * \file VortexBlobs.hpp */
 
 class VortexBlobs
 {

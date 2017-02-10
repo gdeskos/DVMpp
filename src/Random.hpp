@@ -3,7 +3,9 @@
 
 #include <random>
 
-/// Random takes care of random number generation
+/** \class Random
+ * \brief Takes care of random number generation
+ * \file Random.hpp */
 
 class Random
 {

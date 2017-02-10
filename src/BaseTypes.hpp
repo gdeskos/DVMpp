@@ -1,6 +1,9 @@
 #ifndef BASETYPES
 #define BASETYPES
 
+/** \file BaseTypes.hpp
+ * \brief Basic type definitions and global constants */
+
 #include <armadillo>
 
 using Matrix = arma::mat;

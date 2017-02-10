@@ -13,7 +13,9 @@
 #include <string>
 #include <tuple>
 
-/// VortexSheet describes the vortex sheet
+/** \class VortexSheet
+ * \brief Describes the vortex sheet
+ * \file VortexSheet.hpp */
 
 class VortexSheet
 {

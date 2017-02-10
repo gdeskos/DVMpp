@@ -4,7 +4,9 @@
 #include "BaseTypes.hpp"
 #include "XmlHandler.hpp"
 
-/// Probe describes a velocity probe.
+/** \class Probe
+ * \brief Describes a velocity probe.
+ * \file Probe.hpp */
 
 class Probe
 {

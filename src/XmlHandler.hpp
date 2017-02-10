@@ -8,7 +8,9 @@
 #include <vector>
 #include <unordered_map>
 
-///\file XmlHandler.hpp Wrapper for pugixml to provide error checking and nice accessors
+/** \class XmlHandler
+ * \brief Wrapper for pugixml to provide error checks
+ * \file XmlHandler.hpp */
 
 class XmlHandler
 {

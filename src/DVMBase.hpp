@@ -18,7 +18,9 @@
 #include <string.h>
 #include <string>
 
-/// DMV class contaning all the elements of the DVM
+/** \class DVMBase
+ * \brief Contains all the elements of the DVM
+ * \file DVMBase.hpp */
 
 class DVMBase
 {
