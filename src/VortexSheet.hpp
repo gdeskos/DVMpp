@@ -32,6 +32,8 @@ class VortexSheet
 	Vector m_etx;   ///< x-coor tangential unit vector
 	Vector m_etz;   ///< z-coor tangential unit vector
 
+	double m_A; ///< Reference area for drag coefficient
+
 	Matrix m_infM; ///< Influence matrix
 
 	double m_rho; ///< Density of fluid

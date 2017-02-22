@@ -56,6 +56,11 @@ void VortexSheet::read_input_coord(std::string file)
 
 	std::cout << "Succesfully loaded coordinate file with " << m_x.n_elem
 	          << " points." << std::endl;
+
+	// Assume for the moment that we are looking at a cylinder - get the
+	// diameter for the drag coefficient reference area.
+	m_A = arma::max(m_x) - arma::min(m_x);
+	std::cout << "A = " << m_A << " (assuming cylinder)\n";
 }
 
 void VortexSheet::form_vortex_sheet()
@@ -492,8 +497,8 @@ void VortexSheet::compute_loads(double Ur)
 	m_fx = -arma::sum(P % m_enx % m_ds);
 	m_fz = -arma::sum(P % m_enz % m_ds);
 
-	std::cout << "C_D = " << m_fx / (0.5 * m_rho * 1.0 * Ur * Ur) << "\t"
-	          << "C_L = " << m_fz / (0.5 * m_rho * 1.0 * Ur * Ur) << std::endl;
+	std::cout << "C_D = " << m_fx / (0.5 * m_rho * m_A * Ur * Ur) << "\t"
+	          << "C_L = " << m_fz / (0.5 * m_rho * m_A * Ur * Ur) << std::endl;
 }
 
 unsigned VortexSheet::size()
