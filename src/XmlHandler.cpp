@@ -19,6 +19,7 @@ XmlHandler::XmlHandler(std::string xml_file)
 		throw os.str();
 	}
 
+	std::cout << "Loaded xml input: " << xml_file << "\n";
 	buildOptionMap();
 }
 

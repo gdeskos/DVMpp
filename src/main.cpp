@@ -54,11 +54,6 @@ int main(int argc, char *argv[])
 			return 1;
 		}
 
-		XmlHandler xml(vm["input-file"].as<std::string>());
-
-		std::string experiment_name, domain_type;
-		// FileNames file_names;
-
 		std::cout
 		    << "=============================================================="
 		    << std::endl;
@@ -67,7 +62,11 @@ int main(int argc, char *argv[])
 		    << "=============================================================="
 		    << std::endl;
 
-		std::cout << "Successfully loaded XML input file" << std::endl;
+		XmlHandler xml(vm["input-file"].as<std::string>());
+
+		std::string experiment_name, domain_type;
+		// FileNames file_names;
+
 
 		// Deal with time - this is horrible!
 		auto time = std::time(nullptr);
@@ -88,12 +87,12 @@ int main(int argc, char *argv[])
 		/// Solve the problem
 		dvm.solve();
 
+		std::cout << "\nTimestamp : " << stamp << "\n";
+
 		// output the cpu time on screen
 		auto end = std::chrono::system_clock::now();
 		std::chrono::duration<double> elapsed = end - start;
-		std::cout << "\nRuntime : " << elapsed.count() << "s\n";
-
-		std::cout << "Timestamp : " << stamp << "\n";
+		std::cout << "Runtime : " << elapsed.count() << "s\n";
 
 		std::cout << "Completed DVM computations succesfully" << std::endl;
 
