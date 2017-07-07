@@ -1,6 +1,6 @@
 # DVMpp
 
-Two-Dimensional Discrete Vortex Method Code written in C++
+2D Discrete Vortex Method Code written in C++
 -----------------------------------------------------------
 Two dimensional Discrete Vortex Method developed at 
 Imperial College London between 2015-2017. The method
