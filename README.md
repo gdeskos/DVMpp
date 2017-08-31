@@ -6,6 +6,8 @@ Two dimensional Discrete Vortex Method developed at
 Imperial College London between 2015-2017. The method
 is based on the classic DVM RANDOM-WALK algorithm of Chorin, 1973
 
+https://www.youtube.com/watch?v=xckO4AxQIf8&feature=youtu.be
+
 To compile
 -----------
 
