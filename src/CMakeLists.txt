@@ -50,9 +50,14 @@ endif()
 target_include_directories(DVMpp PRIVATE ${ARMADILLO_INCLUDE_DIRS})
 target_link_libraries(DVMpp PRIVATE ${ARMADILLO_LIBRARIES})
 
-# Find and link OpenMP
-find_package(OpenMP REQUIRED)
-target_link_libraries(DVMpp PRIVATE OpenMP::OpenMP_CXX)
+# Find and link OpenMP (optional on macOS)
+find_package(OpenMP)
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(DVMpp PRIVATE OpenMP::OpenMP_CXX)
+    message(STATUS "OpenMP support enabled")
+else()
+    message(STATUS "OpenMP not found - building without parallel support")
+endif()
 
 # Find and link BLAS
 find_package(BLAS REQUIRED)
@@ -100,10 +105,12 @@ target_include_directories(DVMpp_lib PUBLIC ${CMAKE_CURRENT_SOURCE_DIR})
 target_include_directories(DVMpp_lib PUBLIC ${ARMADILLO_INCLUDE_DIRS})
 target_link_libraries(DVMpp_lib PUBLIC
     ${ARMADILLO_LIBRARIES}
-    OpenMP::OpenMP_CXX
     ${BLAS_LIBRARIES}
     Boost::program_options
 )
+if(OpenMP_CXX_FOUND)
+    target_link_libraries(DVMpp_lib PUBLIC OpenMP::OpenMP_CXX)
+endif()
 target_compile_definitions(DVMpp_lib PUBLIC HAS_BOOST)
 
 if(USE_FMM)

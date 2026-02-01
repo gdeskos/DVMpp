@@ -1,7 +1,9 @@
 #include "VelocityKernel.hpp"
 #include "Exceptions.hpp"
 #include <cmath>
+#ifdef _OPENMP
 #include <omp.h>
+#endif
 
 namespace dvm {
 
