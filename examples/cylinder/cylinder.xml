@@ -1,4 +1,4 @@
-<IC2DDVM>
+<DVMpp>
     <algorithms>
         <surface_crossing string="REFLECT" />
     </algorithms>
@@ -28,4 +28,4 @@
         <dt val="0.005" />
         <steps val="300" />
     </time>
-</IC2DDVM>
+</DVMpp>

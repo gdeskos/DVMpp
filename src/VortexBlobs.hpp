@@ -1,11 +1,18 @@
-#ifndef VORTEXBLOBS_H
-#define VORTEXBLOBS_H
+#ifndef VORTEXBLOBS_HPP
+#define VORTEXBLOBS_HPP
 
 #include "BaseTypes.hpp"
+#include "Exceptions.hpp"
 #include "Random.hpp"
 #include "XmlHandler.hpp"
 
+#include <memory>
 #include <vector>
+
+// Forward declaration
+namespace dvm {
+class VelocityKernel;
+}
 
 /** \class VortexBlobs
  * \brief Describes the vortex blobs
@@ -13,68 +20,82 @@
 
 class VortexBlobs
 {
-	public:
-	std::vector<unsigned> m_ID; ///< Vortex blob ID
-	Vector m_x;                 ///< x-coordinate
-	Vector m_z;                 ///< z-coordinate
-	Vector m_circ;              ///< circulation
-	Vector m_sigma;             ///< vortex cut-off
-	Vector m_u;                 ///< local x-velocity
-	Vector m_w;                 ///< local z-velocity
-	Vector m_uvs;
-	Vector m_wvs;
+    public:
+    std::vector<unsigned> m_ID; ///< Vortex blob ID
+    Vector m_x;                 ///< x-coordinate
+    Vector m_z;                 ///< z-coordinate
+    Vector m_circ;              ///< circulation
+    Vector m_sigma;             ///< vortex cut-off
+    Vector m_u;                 ///< local x-velocity
+    Vector m_w;                 ///< local z-velocity
+    Vector m_uvs;
+    Vector m_wvs;
 
-	private:
-	/// Output filename for the blob data;
-	/** Needs to hold a string as a stream cannot be copy-constructed. This
-	 * means we cannot return a VortexBlobs instance from a function. */
-	std::string m_blobsfile;
+    private:
+    /// Output filename for the blob data
+    std::string m_blobsfile;
 
-	/// Output filename for the number of blobs at each timestep
-	/** Needs to hold a string as a stream cannot be copy-constructed. This
-	 * means we cannot return a VortexBlobs instance from a function. */
-	std::string m_numfile;
+    /// Output filename for the number of blobs at each timestep
+    std::string m_numfile;
 
-	public:
-	VortexBlobs();
+    /// Velocity kernel for Biot-Savart computation
+    std::unique_ptr<dvm::VelocityKernel> m_kernel;
 
-	/// Create vortex blobs instance that will write to file
-	VortexBlobs(const XmlHandler &xml, const std::string &stamp);
+    public:
+    VortexBlobs();
 
-	/// Constructor
-	/** \creates N number of vortices and sets them to zero*/
-	VortexBlobs(const unsigned &N);
+    /// Create vortex blobs instance that will write to file
+    VortexBlobs(const XmlHandler &xml, const std::string &stamp);
 
-	/// Appends vortexblobs
-	void append_vortices(VortexBlobs &NewVortBlobs);
+    /// Constructor
+    /** \creates N number of vortices and sets them to zero*/
+    explicit VortexBlobs(unsigned N);
 
-	/// Biot-Savart relationship
-	void biotsavart();
+    /// Destructor
+    ~VortexBlobs();
 
-	/// Diffusion through random walk
-	void diffusion_random_walk(Random &_rand, double nu, double dt);
+    /// Move constructor
+    VortexBlobs(VortexBlobs&& other) noexcept;
 
-	/// Find the total circulation
-	double totalcirc();
+    /// Move assignment
+    VortexBlobs& operator=(VortexBlobs&& other) noexcept;
 
-	/// Current number of vortex blobs
-	unsigned size() const;
+    /// Copy constructor
+    VortexBlobs(const VortexBlobs& other);
 
-	/// Print the location of each vortex blob
-	void print_location();
+    /// Copy assignment
+    VortexBlobs& operator=(const VortexBlobs& other);
 
-	/// Print the velocity of each vortex blob
-	void print_velocity();
+    /// Appends vortexblobs
+    void append_vortices(VortexBlobs &NewVortBlobs);
 
-	/// Print the circulation of each vortex blob
-	void print_circulation();
+    /// Biot-Savart relationship
+    void biotsavart();
 
-	/// Write the blob info and number of vortices to file
-	/** \param time Simulation time [s] */
-	void write_step(double time, unsigned step);
+    /// Diffusion through random walk
+    void diffusion_random_walk(Random &_rand, double nu, double dt);
 
-	/// Destructor
-	~VortexBlobs();
+    /// Find the total circulation
+    [[nodiscard]] double totalcirc() const;
+
+    /// Current number of vortex blobs
+    [[nodiscard]] unsigned size() const;
+
+    /// Print the location of each vortex blob
+    void print_location() const;
+
+    /// Print the velocity of each vortex blob
+    void print_velocity() const;
+
+    /// Print the circulation of each vortex blob
+    void print_circulation() const;
+
+    /// Write the blob info and number of vortices to file
+    /** \param time Simulation time [s] */
+    void write_step(double time, unsigned step);
+
+    /// Set velocity kernel type ("direct" or "fmm")
+    void setKernelType(const std::string& type);
 };
 
-#endif
+#endif // VORTEXBLOBS_HPP

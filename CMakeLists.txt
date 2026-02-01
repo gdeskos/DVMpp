@@ -1,12 +1,28 @@
-cmake_minimum_required(VERSION 2.8)
+cmake_minimum_required(VERSION 3.14)
 
-project(2DDVM++)
+project(DVMpp
+    VERSION 1.0.0
+    DESCRIPTION "2D Discrete Vortex Method Code"
+    LANGUAGES CXX)
 
-set(CMAKE_SOURCE_DIR ${PROJECT_SOURCE_DIR}/src)
-set(CMAKE_BINARY_DIR ${PROJECT_SOURCE_DIR})
-set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+# Options
+option(BUILD_TESTING "Build the testing tree" ON)
+option(USE_FMM "Enable Fast Multipole Method for O(N) velocity computation" OFF)
+option(BUILD_DOC "Build documentation with Doxygen" ON)
 
-set(DOC_DIR ${PROJECT_SOURCE_DIR}/doc)
+# Set output directories
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_SOURCE_DIR}/bin)
 
-add_subdirectory(${CMAKE_SOURCE_DIR})
-add_subdirectory(${PROJECT_SOURCE_DIR}/doc)
+# Add source subdirectory
+add_subdirectory(src)
+
+# Add documentation if requested
+if(BUILD_DOC)
+    add_subdirectory(doc)
+endif()
+
+# Add testing infrastructure
+if(BUILD_TESTING)
+    enable_testing()
+    add_subdirectory(tests)
+endif()
