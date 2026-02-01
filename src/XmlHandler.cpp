@@ -165,6 +165,8 @@ void XmlHandler::buildOptionMap()
     m_option_map.insert({"algorithms_velocity_kernel", {"algorithms", "velocity_kernel", "string", "velocity computation kernel", "direct fmm"}});
     m_option_map.insert({"algorithms_fmm_expansion_order", {"algorithms", "fmm_expansion_order", "val", "FMM expansion order", ">0"}});
     m_option_map.insert({"algorithms_fmm_theta", {"algorithms", "fmm_theta", "val", "FMM opening angle criterion", "none"}});
+    m_option_map.insert({"algorithms_merge_threshold", {"algorithms", "merge_threshold", "val", "vortex merge threshold (0=disabled)", "none"}});
+    m_option_map.insert({"algorithms_merge_frequency", {"algorithms", "merge_frequency", "val", "merge every N steps (0=disabled)", "none"}});
 
     m_option_map.insert({"constants_density", {"constants", "density", "val", "specific gravity of fluid", ">0"}});
     m_option_map.insert({"constants_nu", {"constants", "nu", "val", "kinematic viscosity [m^2 / s]", ">0"}});
@@ -185,6 +187,18 @@ void XmlHandler::buildOptionMap()
     m_option_map.insert({"time_scheme", {"time", "scheme", "string", "time-stepping scheme", "euler RK3"}});
     m_option_map.insert({"time_dt", {"time", "dt", "val", "time step [s]", ">0"}});
     m_option_map.insert({"time_steps", {"time", "steps", "val", "total number of timesteps", ">0"}});
+
+    // Remeshing options
+    m_option_map.insert({"remesh_frequency", {"remesh", "frequency", "val", "remesh every N steps (0=disabled)", "none"}});
+    m_option_map.insert({"remesh_xmin", {"remesh", "xmin", "val", "mesh x-direction minimum bound", "none"}});
+    m_option_map.insert({"remesh_xmax", {"remesh", "xmax", "val", "mesh x-direction maximum bound", "none"}});
+    m_option_map.insert({"remesh_zmin", {"remesh", "zmin", "val", "mesh z-direction minimum bound", "none"}});
+    m_option_map.insert({"remesh_zmax", {"remesh", "zmax", "val", "mesh z-direction maximum bound", "none"}});
+    m_option_map.insert({"remesh_dx", {"remesh", "dx", "val", "mesh spacing in x-direction", ">0"}});
+    m_option_map.insert({"remesh_dz", {"remesh", "dz", "val", "mesh spacing in z-direction", ">0"}});
+    m_option_map.insert({"remesh_kernel", {"remesh", "kernel", "string", "interpolation kernel", "M4prime gaussian M6"}});
+    m_option_map.insert({"remesh_sigma", {"remesh", "sigma", "val", "core size for new particles", ">0"}});
+    m_option_map.insert({"remesh_circ_threshold", {"remesh", "circ_threshold", "val", "minimum circulation for particle creation", "none"}});
 }
 
 void XmlHandler::writeExample(std::string file) const

@@ -101,6 +101,113 @@ void VortexBlobs::setKernelType(const std::string& type)
     m_kernel = dvm::VelocityKernel::create(type);
 }
 
+void VortexBlobs::copyOutputConfig(const VortexBlobs& other)
+{
+    m_blobsfile = other.m_blobsfile;
+    m_numfile = other.m_numfile;
+}
+
+unsigned VortexBlobs::merge_blobs(double threshold)
+{
+    if (size() < 2) {
+        return 0;
+    }
+
+    // Track which blobs have been merged (marked for deletion)
+    std::vector<bool> merged(size(), false);
+    unsigned merge_count = 0;
+
+    // Iterate over all pairs
+    for (unsigned i = 0; i < size(); ++i) {
+        if (merged[i]) continue;
+
+        for (unsigned j = i + 1; j < size(); ++j) {
+            if (merged[j]) continue;
+
+            const double gamma_i = m_circ(i);
+            const double gamma_j = m_circ(j);
+            const double gamma_sum = gamma_i + gamma_j;
+
+            // Skip if circulations would cancel (avoid division by zero)
+            if (std::abs(gamma_sum) < 1e-15) continue;
+
+            // Compute distance between vortices
+            const double dx = m_x(i) - m_x(j);
+            const double dz = m_z(i) - m_z(j);
+            const double dist = std::sqrt(dx * dx + dz * dz);
+
+            // Merge criterion: |Γi*Γj/(Γi+Γj)| * |xi - xj| < threshold
+            const double criterion = std::abs(gamma_i * gamma_j / gamma_sum) * dist;
+
+            if (criterion < threshold) {
+                // Merge j into i, conserving moments
+                // Zeroth moment: Γ_new = Γi + Γj
+                // First moment: x_new = (Γi*xi + Γj*xj) / (Γi + Γj)
+
+                const double new_x = (gamma_i * m_x(i) + gamma_j * m_x(j)) / gamma_sum;
+                const double new_z = (gamma_i * m_z(i) + gamma_j * m_z(j)) / gamma_sum;
+                const double new_circ = gamma_sum;
+
+                // Weighted average for sigma
+                const double new_sigma = (std::abs(gamma_i) * m_sigma(i) +
+                                          std::abs(gamma_j) * m_sigma(j)) /
+                                         (std::abs(gamma_i) + std::abs(gamma_j));
+
+                // Update vortex i with merged values
+                m_x(i) = new_x;
+                m_z(i) = new_z;
+                m_circ(i) = new_circ;
+                m_sigma(i) = new_sigma;
+                m_u(i) = 0.0;  // Velocities will be recomputed
+                m_w(i) = 0.0;
+                m_uvs(i) = 0.0;
+                m_wvs(i) = 0.0;
+
+                // Mark j for removal
+                merged[j] = true;
+                ++merge_count;
+            }
+        }
+    }
+
+    if (merge_count == 0) {
+        return 0;
+    }
+
+    // Create compacted array without merged vortices
+    std::vector<unsigned> keep_indices;
+    keep_indices.reserve(size() - merge_count);
+
+    for (unsigned i = 0; i < size(); ++i) {
+        if (!merged[i]) {
+            keep_indices.push_back(i);
+        }
+    }
+
+    VortexBlobs new_vortex(keep_indices.size());
+
+    for (unsigned i = 0; i < keep_indices.size(); ++i) {
+        unsigned src = keep_indices[i];
+        new_vortex.m_ID[i] = i;
+        new_vortex.m_x(i) = m_x(src);
+        new_vortex.m_z(i) = m_z(src);
+        new_vortex.m_circ(i) = m_circ(src);
+        new_vortex.m_sigma(i) = m_sigma(src);
+        new_vortex.m_u(i) = m_u(src);
+        new_vortex.m_w(i) = m_w(src);
+        new_vortex.m_uvs(i) = m_uvs(src);
+        new_vortex.m_wvs(i) = m_wvs(src);
+    }
+
+    // Preserve output config
+    new_vortex.copyOutputConfig(*this);
+
+    // Replace with compacted array
+    *this = std::move(new_vortex);
+
+    return merge_count;
+}
+
 void VortexBlobs::append_vortices(VortexBlobs &NewVortBlobs)
 {
     // Get the number of Vortices

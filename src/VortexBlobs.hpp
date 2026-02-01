@@ -96,6 +96,16 @@ class VortexBlobs
 
     /// Set velocity kernel type ("direct" or "fmm")
     void setKernelType(const std::string& type);
+
+    /// Copy output file configuration from another VortexBlobs
+    void copyOutputConfig(const VortexBlobs& other);
+
+    /// Merge vortex blobs that satisfy the merge criterion
+    /** Conserves zeroth moment (total circulation) and first moment (center of vorticity)
+     *  Merge criterion: |Γi*Γj/(Γi+Γj)| * |xi - xj| < threshold
+     *  \param threshold Merge threshold (default 1e-5)
+     *  \return Number of merges performed */
+    unsigned merge_blobs(double threshold = 1e-5);
 };
 
 #endif // VORTEXBLOBS_HPP

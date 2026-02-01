@@ -1,0 +1,31 @@
+<?xml version="1.0"?>
+<DVMpp>
+    <algorithms>
+        <surface_crossing string="REFLECT" />
+    </algorithms>
+    <constants>
+        <density val="1.0" />
+        <nu val="0.001" />
+        <max_NumPanelVort val="3" />
+        <cutoff_exp val="0.675" />
+        <seed val="42" />
+    </constants>
+    <io>
+        <input_dir string="./fixtures/test_data/" />
+        <output_dir string="./test_output/" />
+        <domain_file string="simple_body.txt" />
+    </io>
+    <flow>
+        <ux val="3.0" />
+        <uz val="0.0" />
+    </flow>
+    <probe>
+        <x val="20" />
+        <z val="1" />
+    </probe>
+    <time>
+        <scheme string="euler" />
+        <dt val="0.005" />
+        <steps val="10" />
+    </time>
+</DVMpp>

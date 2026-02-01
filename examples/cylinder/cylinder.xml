@@ -1,22 +1,22 @@
 <DVMpp>
     <algorithms>
-        <surface_crossing string="REFLECT" />
+        <surface_crossing string="DELETE" />
     </algorithms>
 	<constants>
 		<density val="1.0" />
-        <nu val="0.001" />
-        <max_Gamma val="0.001" />
-        <max_NumPanelVort val="3" />
+        <nu val="0.03" />
+        <max_Gamma val="1.0" />
+        <max_NumPanelVort val="10" />
         <cutoff_exp val="0.675" />
-		<seed val="-1" />
+		<seed val="12345" />
     </constants>
 	<io>
-        <input_dir string="/your/path/to/DVMpp/examples/cylinder/" />
-        <output_dir string="/your/path/to/DVMpp/examples/cylinder/" />
-        <domain_file string="/bodycoordinatesN40.txt" />
+        <input_dir string="/Users/gdeskos/research_projects/DVMpp/examples/cylinder/" />
+        <output_dir string="/Users/gdeskos/research_projects/DVMpp/examples/cylinder/" />
+        <domain_file string="bodycoordinatesN40.txt" />
     </io>
     <flow>
-        <ux val="3.0" />
+        <ux val="10.0" />
         <uz val="0.00" />
     </flow>
     <probe>
@@ -24,8 +24,23 @@
         <z val="1" />
     </probe>
     <time>
-		<scheme string="euler" />
+		<scheme string="RK3" />
         <dt val="0.005" />
-        <steps val="300" />
+        <steps val="200" />
     </time>
+    <!-- Remeshing configuration (optional - remove this section to disable)
+         Redistributes particles onto a structured mesh to control particle count
+         Available kernels: M4prime (default), gaussian, M6 -->
+    <remesh>
+        <frequency val="10" />
+        <xmin val="-5.0" />
+        <xmax val="25.0" />
+        <zmin val="-10.0" />
+        <zmax val="10.0" />
+        <dx val="0.01" />
+        <dz val="0.01" />
+        <kernel string="M4prime" />
+        <sigma val="0.05" />
+        <circ_threshold val="1e-10" />
+    </remesh> 
 </DVMpp>

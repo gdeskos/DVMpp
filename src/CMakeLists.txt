@@ -2,6 +2,7 @@
 
 # Define source files
 set(DVM_SOURCE_FILES
+    BackgroundMesh.cpp
     DVMBase.cpp
     main.cpp
     VortexBlobs.cpp
@@ -14,6 +15,7 @@ set(DVM_SOURCE_FILES
 
 # Define header files for IDE support
 set(DVM_HEADER_FILES
+    BackgroundMesh.hpp
     BaseTypes.hpp
     DVMBase.hpp
     Exceptions.hpp
@@ -89,6 +91,7 @@ endif()
 
 # Create a library target for testing (without main)
 set(DVM_LIB_SOURCES
+    BackgroundMesh.cpp
     DVMBase.cpp
     VortexBlobs.cpp
     VortexSheet.cpp

@@ -1,6 +1,7 @@
 #ifndef DVMBASE_HPP
 #define DVMBASE_HPP
 
+#include "BackgroundMesh.hpp"
 #include "BaseTypes.hpp"
 #include "Exceptions.hpp"
 #include "Probe.hpp"
@@ -47,6 +48,7 @@ class DVMBase
     Probe m_probe;           ///< Velocity probe
     Random m_rand;           ///< Random number generation
     XmlHandler m_xml;        ///< Xml handler
+    BackgroundMesh m_mesh;   ///< Background mesh for remeshing
 
     double m_nu; ///< Kinematic viscosity
 
@@ -79,8 +81,14 @@ class DVMBase
 
     SurfaceCross m_surfcross; ///< Surface crossing algorithm
 
+    double m_merge_threshold;   ///< Threshold for vortex merging (0 = disabled)
+    unsigned m_merge_frequency; ///< Merge every N steps (0 = disabled)
+
     /// Convect point vortices
     void convect();
+
+    /// Perform remeshing if enabled and at correct frequency
+    void remesh();
 
     /// Write the output file
     /** Happens at each time step */

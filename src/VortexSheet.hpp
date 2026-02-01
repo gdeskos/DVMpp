@@ -96,6 +96,9 @@ class VortexSheet
     /// Reflects the vortices to the image location from the panels
     void reflect(VortexBlobs &vortex);
 
+    /// Deletes vortices that have crossed into the body
+    void delete_inside(VortexBlobs &vortex);
+
     /// Compute the forces on the body
     void compute_loads(double Urel);
 

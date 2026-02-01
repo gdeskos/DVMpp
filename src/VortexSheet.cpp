@@ -344,43 +344,104 @@ void VortexSheet::write_step(double time)
 
 void VortexSheet::reflect(VortexBlobs &vortex)
 {
-    Vector_un closest_panel(vortex.size());
-    Vector min_dist(vortex.size());
-
     for (unsigned i = 0; i < vortex.size(); i++) {
-        min_dist(i) = 0;
-        closest_panel(i) = 0;
+        if (!inside_body(vortex.m_x(i), vortex.m_z(i))) {
+            continue;
+        }
 
-        if (inside_body(vortex.m_x(i), vortex.m_z(i))) {
-            // Find which panel is closest to the vortex
-            double min_prev = 10E6;
-            for (unsigned j = 0; j < size(); j++) {
-                const double dx = m_xc(j) - vortex.m_x(i);
-                const double dz = m_zc(j) - vortex.m_z(i);
-                const double dr = std::sqrt(std::pow(dx, 2.0) + std::pow(dz, 2.0));
+        const double px = vortex.m_x(i);
+        const double pz = vortex.m_z(i);
 
-                if (dr < min_prev) {
-                    closest_panel(i) = j;
-                    min_prev = dr;
-                }
+        // Find the panel with minimum perpendicular distance
+        unsigned closest_panel = 0;
+        double min_dist = 1e10;
+
+        for (unsigned j = 0; j < size(); j++) {
+            // Panel endpoints
+            const double x0 = m_x(j);
+            const double z0 = m_z(j);
+            const double x1 = m_x(j + 1);
+            const double z1 = m_z(j + 1);
+
+            // Vector from panel start to vortex
+            const double vx = px - x0;
+            const double vz = pz - z0;
+
+            // Panel direction vector
+            const double dx = x1 - x0;
+            const double dz = z1 - z0;
+            const double len_sq = dx * dx + dz * dz;
+
+            // Project vortex onto panel line (parameter t)
+            double t = (vx * dx + vz * dz) / len_sq;
+            t = std::max(0.0, std::min(1.0, t));  // Clamp to panel
+
+            // Closest point on panel
+            const double cx = x0 + t * dx;
+            const double cz = z0 + t * dz;
+
+            // Distance to panel
+            const double dist = std::sqrt((px - cx) * (px - cx) + (pz - cz) * (pz - cz));
+
+            if (dist < min_dist) {
+                min_dist = dist;
+                closest_panel = j;
             }
+        }
 
-            // Find the mirror image vortex blob
-            const double x_init = vortex.m_x(i);
-            const double z_init = vortex.m_z(i);
+        // Reflect across the closest panel using outward normal
+        // Move vortex by 2 * distance along the outward normal
+        const double offset = 2.0 * min_dist + 1e-6;  // Small epsilon to ensure outside
+        vortex.m_x(i) = px + offset * m_enx(closest_panel);
+        vortex.m_z(i) = pz + offset * m_enz(closest_panel);
 
-            const double x_0 = m_x(closest_panel(i));
-            const double z_0 = m_z(closest_panel(i));
-            const double x_1 = m_x(closest_panel(i) + 1);
-            const double z_1 = m_z(closest_panel(i) + 1);
-
-            Vector _mirror = mirror(x_init, z_init, x_0, z_0, x_1, z_1);
-
-            vortex.m_x(i) = _mirror(0);
-            vortex.m_z(i) = _mirror(1);
-            // All other properties of the vortices remain the same
+        // Verify it's now outside; if not, try harder
+        if (inside_body(vortex.m_x(i), vortex.m_z(i))) {
+            // Push further along normal
+            vortex.m_x(i) = px + 3.0 * offset * m_enx(closest_panel);
+            vortex.m_z(i) = pz + 3.0 * offset * m_enz(closest_panel);
         }
     }
+}
+
+void VortexSheet::delete_inside(VortexBlobs &vortex)
+{
+    // Find indices of vortices that are OUTSIDE the body (to keep)
+    std::vector<unsigned> keep_indices;
+    keep_indices.reserve(vortex.size());
+
+    for (unsigned i = 0; i < vortex.size(); ++i) {
+        if (!inside_body(vortex.m_x(i), vortex.m_z(i))) {
+            keep_indices.push_back(i);
+        }
+    }
+
+    unsigned deleted = vortex.size() - keep_indices.size();
+    if (deleted == 0) {
+        return;  // Nothing to delete
+    }
+
+    // Create new VortexBlobs with only the kept particles
+    VortexBlobs new_vortex(keep_indices.size());
+
+    for (unsigned i = 0; i < keep_indices.size(); ++i) {
+        unsigned src = keep_indices[i];
+        new_vortex.m_ID[i] = i;
+        new_vortex.m_x(i) = vortex.m_x(src);
+        new_vortex.m_z(i) = vortex.m_z(src);
+        new_vortex.m_circ(i) = vortex.m_circ(src);
+        new_vortex.m_sigma(i) = vortex.m_sigma(src);
+        new_vortex.m_u(i) = vortex.m_u(src);
+        new_vortex.m_w(i) = vortex.m_w(src);
+        new_vortex.m_uvs(i) = vortex.m_uvs(src);
+        new_vortex.m_wvs(i) = vortex.m_wvs(src);
+    }
+
+    // Copy output config and replace
+    new_vortex.copyOutputConfig(vortex);
+    vortex = std::move(new_vortex);
+
+    std::cout << "Deleted " << deleted << " vortices inside body" << std::endl;
 }
 
 bool VortexSheet::inside_body(double xcoor, double zcoor) const

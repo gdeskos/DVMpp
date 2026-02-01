@@ -7,7 +7,7 @@
 
 DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
     : m_vortex(xml, timestamp), m_vortsheet(xml, timestamp),
-      m_probe(xml, timestamp)
+      m_probe(xml, timestamp), m_mesh(xml)
 {
     m_step = 0;
 
@@ -47,6 +47,21 @@ DVMBase::DVMBase(XmlHandler &xml, const std::string &timestamp)
     } else if (surfacecross == "REFLECT") {
         m_surfcross = SurfaceCross::Reflect;
     } // Invalid cases dealt with by the xml handler
+
+    // Vortex merging parameters (optional)
+    try {
+        m_merge_threshold = xml.getValueAttribute("algorithms", "merge_threshold");
+        m_merge_frequency = static_cast<unsigned>(xml.getIntAttribute("algorithms", "merge_frequency"));
+    } catch (const dvm::XMLParseException&) {
+        // Merging not configured - disable
+        m_merge_threshold = 0.0;
+        m_merge_frequency = 0;
+    }
+
+    if (m_merge_frequency > 0 && m_merge_threshold > 0) {
+        std::cout << "Vortex merging enabled: threshold = " << m_merge_threshold
+                  << ", frequency = " << m_merge_frequency << std::endl;
+    }
 }
 
 void DVMBase::solve()
@@ -73,9 +88,8 @@ void DVMBase::compute_step()
     //************** Advection substep*****************//
     convect();
 
-    // remesh();
-    // For remeshing both triangulated meshes (with RBF) and structured meshes
-    // with Morgenthal M6 interpolators will be used.
+    //************** Remeshing substep ****************//
+    remesh();
 
     //************** Diffusion substep ****************//
     // The diffusion problem in an infinite domain
@@ -90,13 +104,32 @@ void DVMBase::compute_step()
     // random walk!
     // Care is taken of these vortices by 1) Deleting them, 2) Absorbing them,
     // 3) Reflecting them back to the flow
-    m_vortsheet.reflect(m_vortex);
+    switch (m_surfcross) {
+        case SurfaceCross::Delete:
+            m_vortsheet.delete_inside(m_vortex);
+            break;
+        case SurfaceCross::Absorb:
+            // TODO: Absorb not yet implemented, fall back to reflect
+            m_vortsheet.reflect(m_vortex);
+            break;
+        case SurfaceCross::Reflect:
+            m_vortsheet.reflect(m_vortex);
+            break;
+    }
 
     //********************* Computing Loads/ Moving body *********************//
     // We compute the loads at the end of the time step
     m_vortsheet.compute_loads(m_Ur);
 
     //********************* Merge/Delete Vortices ****************************//
+    // Merge vortices that satisfy the merge criterion
+    if (m_merge_frequency > 0 && m_merge_threshold > 0 &&
+        m_step % m_merge_frequency == 0) {
+        unsigned merged = m_vortex.merge_blobs(m_merge_threshold);
+        if (merged > 0) {
+            std::cout << "Merged " << merged << " vortex pairs" << std::endl;
+        }
+    }
 }
 
 double DVMBase::get_time() const
@@ -122,6 +155,13 @@ void DVMBase::write_outputs()
     m_vortsheet.write_step(m_time);
 
     m_probe.write_step(m_time);
+}
+
+void DVMBase::remesh()
+{
+    if (m_mesh.should_remesh(m_step)) {
+        m_vortex = m_mesh.remesh(m_vortex);
+    }
 }
 
 void DVMBase::convect()
